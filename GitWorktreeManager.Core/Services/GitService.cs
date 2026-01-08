@@ -60,16 +60,33 @@ public class GitService : IGitService
         string worktreePath,
         string branchName,
         bool createBranch = false,
+        string? baseBranch = null,
         CancellationToken cancellationToken = default)
     {
-        // Build command: git worktree add [-b <branch>] <path> <branch>
-        // With -b: git worktree add -b <new-branch> <path>
+        // Build command: git worktree add [-b <branch>] <path> [<commit-ish>]
+        // With -b: git worktree add -b <new-branch> <path> [<base-branch>]
         // Without -b: git worktree add <path> <branch>
-        var arguments = createBranch
-            ? $"worktree add -b \"{branchName}\" \"{worktreePath}\""
-            : $"worktree add \"{worktreePath}\" \"{branchName}\"";
+        string arguments;
+        
+        if (createBranch)
+        {
+            // Create new branch based on another branch
+            if (!string.IsNullOrEmpty(baseBranch))
+            {
+                arguments = $"worktree add -b \"{branchName}\" \"{worktreePath}\" \"{baseBranch}\"";
+            }
+            else
+            {
+                arguments = $"worktree add -b \"{branchName}\" \"{worktreePath}\"";
+            }
+        }
+        else
+        {
+            // Checkout existing branch
+            arguments = $"worktree add \"{worktreePath}\" \"{branchName}\"";
+        }
 
-        _logger?.LogInformation($"Adding worktree: path='{worktreePath}', branch='{branchName}', createBranch={createBranch}");
+        _logger?.LogInformation($"Adding worktree: path='{worktreePath}', branch='{branchName}', createBranch={createBranch}, baseBranch='{baseBranch}'");
 
         var result = await ExecuteGitCommandAsync(
             repositoryPath,
@@ -171,6 +188,52 @@ public class GitService : IGitService
             _logger?.LogException(ex, "Error checking Git installation");
             return false;
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<GitCommandResult<IReadOnlyList<string>>> GetBranchesAsync(
+        string repositoryPath,
+        CancellationToken cancellationToken = default)
+    {
+        _logger?.LogInformation($"Getting branches for repository: {repositoryPath}");
+
+        // Get local branches
+        var localResult = await ExecuteGitCommandAsync(
+            repositoryPath,
+            "branch --format=%(refname:short)",
+            cancellationToken);
+
+        // Get remote branches
+        var remoteResult = await ExecuteGitCommandAsync(
+            repositoryPath,
+            "branch -r --format=%(refname:short)",
+            cancellationToken);
+
+        var branches = new List<string>();
+
+        if (localResult.Success && !string.IsNullOrWhiteSpace(localResult.Output))
+        {
+            var localBranches = localResult.Output
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(b => b.Trim())
+                .Where(b => !string.IsNullOrEmpty(b));
+            branches.AddRange(localBranches);
+        }
+
+        if (remoteResult.Success && !string.IsNullOrWhiteSpace(remoteResult.Output))
+        {
+            var remoteBranches = remoteResult.Output
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(b => b.Trim())
+                .Where(b => !string.IsNullOrEmpty(b) && !b.Contains("HEAD"))
+                // Remove origin/ prefix for cleaner display but keep track it's remote
+                .Select(b => b.StartsWith("origin/") ? b.Substring(7) : b)
+                .Where(b => !branches.Contains(b)); // Don't duplicate local branches
+            branches.AddRange(remoteBranches);
+        }
+
+        _logger?.LogInformation($"Found {branches.Count} branch(es)");
+        return GitCommandResult<IReadOnlyList<string>>.Ok(branches.Distinct().OrderBy(b => b).ToList());
     }
 
 

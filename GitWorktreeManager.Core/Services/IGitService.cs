@@ -24,6 +24,7 @@ public interface IGitService
     /// <param name="worktreePath">The path where the new worktree will be created.</param>
     /// <param name="branchName">The branch name to checkout in the worktree.</param>
     /// <param name="createBranch">If true, creates a new branch with the -b flag.</param>
+    /// <param name="baseBranch">The base branch to create the new branch from (only used when createBranch is true).</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>A result indicating success or failure.</returns>
     Task<GitCommandResult> AddWorktreeAsync(
@@ -31,6 +32,7 @@ public interface IGitService
         string worktreePath,
         string branchName,
         bool createBranch = false,
+        string? baseBranch = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -63,5 +65,15 @@ public interface IGitService
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>True if Git is installed and accessible, false otherwise.</returns>
     Task<bool> IsGitInstalledAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all branches (local and remote) for the specified repository.
+    /// </summary>
+    /// <param name="repositoryPath">The path to the Git repository.</param>
+    /// <param name="cancellationToken">Cancellation token for the operation.</param>
+    /// <returns>A result containing the list of branch names or an error.</returns>
+    Task<GitCommandResult<IReadOnlyList<string>>> GetBranchesAsync(
+        string repositoryPath,
         CancellationToken cancellationToken = default);
 }

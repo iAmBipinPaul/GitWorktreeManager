@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
@@ -7,24 +8,30 @@ namespace GitWorktreeManager.Dialogs;
 
 /// <summary>
 /// Data context for the Add Worktree dialog.
-/// Contains the input fields and validation state for creating a new worktree.
+/// Two modes:
+/// - Create new branch: Enter branch name + select base branch
+/// - Use existing branch: Select branch from dropdown
 /// </summary>
 [DataContract]
 public class AddWorktreeDialogData : INotifyPropertyChanged
 {
     private string _branchName = string.Empty;
-    private string _worktreePath = string.Empty;
-    private bool _createNewBranch;
+    private string? _selectedBranch;
+    private bool _createNewBranch = true;
     private string? _validationError;
     private bool _isValid;
+    private string _repositoryPath = string.Empty;
 
-    /// <summary>
-    /// Event raised when a property value changes.
-    /// </summary>
     public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>
-    /// The branch name for the new worktree.
+    /// Available branches to select.
+    /// </summary>
+    [DataMember]
+    public ObservableCollection<string> AvailableBranches { get; } = new();
+
+    /// <summary>
+    /// The branch name for the new worktree (only used when CreateNewBranch is true).
     /// </summary>
     [DataMember]
     public string BranchName
@@ -40,15 +47,17 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// The file system path where the worktree will be created.
+    /// The selected branch from dropdown.
+    /// When CreateNewBranch=true: this is the base branch for the new branch.
+    /// When CreateNewBranch=false: this is the existing branch to checkout.
     /// </summary>
     [DataMember]
-    public string WorktreePath
+    public string? SelectedBranch
     {
-        get => _worktreePath;
+        get => _selectedBranch;
         set
         {
-            if (SetProperty(ref _worktreePath, value))
+            if (SetProperty(ref _selectedBranch, value))
             {
                 Validate();
             }
@@ -56,18 +65,49 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// If true, creates a new branch with the specified name.
-    /// If false, checks out an existing branch.
+    /// If true, creates a new branch. If false, uses existing branch.
     /// </summary>
     [DataMember]
     public bool CreateNewBranch
     {
         get => _createNewBranch;
-        set => SetProperty(ref _createNewBranch, value);
+        set
+        {
+            if (SetProperty(ref _createNewBranch, value))
+            {
+                OnPropertyChanged(nameof(BranchSelectorLabel));
+                OnPropertyChanged(nameof(BranchSelectorTooltip));
+                Validate();
+            }
+        }
     }
 
     /// <summary>
-    /// The current validation error message, if any.
+    /// Dynamic label for the branch selector dropdown.
+    /// </summary>
+    [DataMember]
+    public string BranchSelectorLabel => CreateNewBranch ? "Based on:" : "Branch:";
+
+    /// <summary>
+    /// Dynamic tooltip for the branch selector dropdown.
+    /// </summary>
+    [DataMember]
+    public string BranchSelectorTooltip => CreateNewBranch 
+        ? "Select the branch to base your new branch on" 
+        : "Select an existing branch to checkout";
+
+    /// <summary>
+    /// Repository path for generating worktree location.
+    /// </summary>
+    [DataMember]
+    public string RepositoryPath
+    {
+        get => _repositoryPath;
+        set => SetProperty(ref _repositoryPath, value);
+    }
+
+    /// <summary>
+    /// Validation error message.
     /// </summary>
     [DataMember]
     public string? ValidationError
@@ -83,7 +123,7 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Indicates whether the current input is valid.
+    /// Whether the input is valid.
     /// </summary>
     [DataMember]
     public bool IsValid
@@ -93,94 +133,138 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Indicates whether there is a validation error to display.
+    /// Whether there's a validation error.
     /// </summary>
     [DataMember]
     public bool HasValidationError => !string.IsNullOrEmpty(ValidationError);
 
     /// <summary>
-    /// Command to browse for a folder location.
-    /// </summary>
-    [DataMember]
-    public IAsyncCommand? BrowseFolderCommand { get; set; }
-
-    /// <summary>
-    /// Command to confirm the dialog (OK button).
+    /// OK command.
     /// </summary>
     [DataMember]
     public IAsyncCommand? OkCommand { get; set; }
 
     /// <summary>
-    /// Command to cancel the dialog.
+    /// Cancel command.
     /// </summary>
     [DataMember]
     public IAsyncCommand? CancelCommand { get; set; }
 
     /// <summary>
-    /// Validates the current input and updates the validation state.
+    /// Generates the worktree path based on branch name.
+    /// </summary>
+    public string GetWorktreePath()
+    {
+        if (string.IsNullOrWhiteSpace(RepositoryPath))
+        {
+            return string.Empty;
+        }
+
+        // Use BranchName when creating new branch, SelectedBranch when using existing
+        var branchForPath = CreateNewBranch ? BranchName : SelectedBranch;
+        
+        if (string.IsNullOrWhiteSpace(branchForPath))
+        {
+            return string.Empty;
+        }
+
+        var repoParent = Path.GetDirectoryName(RepositoryPath);
+        if (string.IsNullOrEmpty(repoParent))
+        {
+            return string.Empty;
+        }
+
+        var repoName = Path.GetFileName(RepositoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        var safeBranchName = SanitizeBranchName(branchForPath);
+
+        return Path.Combine(repoParent, $"{repoName}-{safeBranchName}");
+    }
+
+    /// <summary>
+    /// Gets the effective branch name for the worktree.
+    /// When creating new branch: returns BranchName.
+    /// When using existing: returns SelectedBranch.
+    /// </summary>
+    public string GetEffectiveBranchName()
+    {
+        return CreateNewBranch ? BranchName : (SelectedBranch ?? string.Empty);
+    }
+
+    private static string SanitizeBranchName(string branchName)
+    {
+        return branchName
+            .Replace("/", "-")
+            .Replace("\\", "-")
+            .Replace(":", "-")
+            .Replace("*", "-")
+            .Replace("?", "-")
+            .Replace("\"", "-")
+            .Replace("<", "-")
+            .Replace(">", "-")
+            .Replace("|", "-");
+    }
+
+    /// <summary>
+    /// Validates the input based on the current mode.
     /// </summary>
     public void Validate()
     {
-        if (string.IsNullOrWhiteSpace(BranchName))
+        if (CreateNewBranch)
         {
-            ValidationError = "Branch name is required.";
-            IsValid = false;
-            return;
-        }
+            // Creating new branch: need branch name + base branch
+            if (string.IsNullOrWhiteSpace(BranchName))
+            {
+                ValidationError = "Branch name is required.";
+                IsValid = false;
+                return;
+            }
 
-        // Validate branch name format (no spaces, special chars at start)
-        if (BranchName.Contains(' '))
-        {
-            ValidationError = "Branch name cannot contain spaces.";
-            IsValid = false;
-            return;
-        }
+            if (BranchName.Contains(' '))
+            {
+                ValidationError = "Branch name cannot contain spaces.";
+                IsValid = false;
+                return;
+            }
 
-        if (BranchName.StartsWith("-") || BranchName.StartsWith("."))
-        {
-            ValidationError = "Branch name cannot start with '-' or '.'.";
-            IsValid = false;
-            return;
-        }
+            if (BranchName.StartsWith("-") || BranchName.StartsWith("."))
+            {
+                ValidationError = "Branch name cannot start with '-' or '.'.";
+                IsValid = false;
+                return;
+            }
 
-        if (string.IsNullOrWhiteSpace(WorktreePath))
-        {
-            ValidationError = "Worktree location is required.";
-            IsValid = false;
-            return;
+            if (string.IsNullOrEmpty(SelectedBranch))
+            {
+                ValidationError = "Please select a base branch.";
+                IsValid = false;
+                return;
+            }
         }
-
-        // Check for invalid path characters
-        var invalidChars = Path.GetInvalidPathChars();
-        if (WorktreePath.IndexOfAny(invalidChars) >= 0)
+        else
         {
-            ValidationError = "Worktree path contains invalid characters.";
-            IsValid = false;
-            return;
+            // Using existing branch: just need selected branch
+            if (string.IsNullOrEmpty(SelectedBranch))
+            {
+                ValidationError = "Please select a branch.";
+                IsValid = false;
+                return;
+            }
         }
 
         ValidationError = null;
         IsValid = true;
     }
 
-    /// <summary>
-    /// Sets a property value and raises PropertyChanged if the value changed.
-    /// </summary>
     protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {
         if (EqualityComparer<T>.Default.Equals(field, value))
-        {
             return false;
-        }
 
         field = value;
         OnPropertyChanged(propertyName);
         return true;
     }
 
-    /// <summary>
-    /// Raises the PropertyChanged event.
-    /// </summary>
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

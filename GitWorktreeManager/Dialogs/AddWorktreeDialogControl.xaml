@@ -1,13 +1,22 @@
 <DataTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+              xmlns:vs="http://schemas.microsoft.com/visualstudio/extensibility/2022/xaml"
+              xmlns:styles="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
+              xmlns:colors="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0">
     
-    <DataTemplate.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-    </DataTemplate.Resources>
-    
-    <Grid MinWidth="400" Margin="16" Background="Transparent">
+    <Grid MinWidth="500">
+        <Grid.Resources>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+            <Style TargetType="Button" BasedOn="{StaticResource {x:Static styles:VsResourceKeys.ButtonStyleKey}}" />
+            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Static styles:VsResourceKeys.TextBoxStyleKey}}" />
+            <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Static styles:VsResourceKeys.ComboBoxStyleKey}}" />
+            <Style TargetType="CheckBox" BasedOn="{StaticResource {x:Static styles:VsResourceKeys.CheckBoxStyleKey}}" />
+            <Style TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource {x:Static styles:VsBrushes.WindowTextKey}}" />
+            </Style>
+        </Grid.Resources>
+        
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -15,84 +24,69 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Dialog Title -->
-        <TextBlock Grid.Row="0" 
-                   Text="Add New Worktree" 
-                   FontSize="16" 
-                   FontWeight="SemiBold"
-                   Margin="0,0,0,16"
-                   Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
-
-        <!-- Branch Name Input -->
-        <StackPanel Grid.Row="1" Margin="0,0,0,12">
-            <TextBlock Text="Branch Name:" 
-                       Margin="0,0,0,4"
-                       Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
-            <TextBox Text="{Binding BranchName, Mode=TwoWay}"
-                     Padding="6,4"
-                     ToolTip="Enter the name of the branch to checkout or create"/>
-        </StackPanel>
-
-        <!-- Create New Branch Checkbox -->
-        <CheckBox Grid.Row="2" 
-                  Content="Create new branch (if it doesn't exist)"
+        <!-- Create New Branch Checkbox - FIRST -->
+        <CheckBox Grid.Row="0" 
+                  Content="Create new branch"
                   IsChecked="{Binding CreateNewBranch, Mode=TwoWay}"
-                  Margin="0,0,0,12"
-                  Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"
-                  ToolTip="Check this to create a new branch with the specified name"/>
+                  Margin="0,0,0,16"
+                  ToolTip="Check to create a new branch, uncheck to use an existing branch"/>
 
-        <!-- Worktree Location Input -->
-        <StackPanel Grid.Row="3" Margin="0,0,0,12">
-            <TextBlock Text="Worktree Location:" 
-                       Margin="0,0,0,4"
-                       Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBox Grid.Column="0"
-                         Text="{Binding WorktreePath, Mode=TwoWay}"
-                         Padding="6,4"
-                         ToolTip="Enter or browse for the folder where the worktree will be created"/>
-                <Button Grid.Column="1"
-                        Content="Browse..."
-                        Command="{Binding BrowseFolderCommand}"
-                        Padding="12,4"
-                        Margin="8,0,0,0"/>
-            </Grid>
-        </StackPanel>
+        <!-- Branch Name Input (only when creating new branch) -->
+        <Grid Grid.Row="1" Margin="0,0,0,16" Visibility="{Binding CreateNewBranch, Converter={StaticResource BoolToVis}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" 
+                       Text="Branch name:" 
+                       VerticalAlignment="Center"/>
+            <TextBox Grid.Column="1"
+                     Text="{Binding BranchName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     Padding="8,6"
+                     ToolTip="Enter the name for the new branch (e.g., feature/my-work)"/>
+        </Grid>
 
-        <!-- Validation Error Message -->
-        <Border Grid.Row="4" 
-                Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"
-                BorderBrush="OrangeRed"
-                BorderThickness="1"
+        <!-- Based On / Select Branch Row -->
+        <Grid Grid.Row="2" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" 
+                       Text="{Binding BranchSelectorLabel}" 
+                       VerticalAlignment="Center"/>
+            <ComboBox Grid.Column="1"
+                      ItemsSource="{Binding AvailableBranches}"
+                      SelectedItem="{Binding SelectedBranch, Mode=TwoWay}"
+                      Padding="8,6"
+                      ToolTip="{Binding BranchSelectorTooltip}"/>
+        </Grid>
+
+        <!-- Validation Error -->
+        <Border Grid.Row="3" 
+                Background="#442222"
                 Padding="8"
                 Margin="0,0,0,16"
                 Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVis}}">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Error: " Foreground="OrangeRed" FontWeight="Bold"/>
-                <TextBlock Text="{Binding ValidationError}" 
-                           Foreground="OrangeRed"
-                           TextWrapping="Wrap"/>
-            </StackPanel>
+            <TextBlock Text="{Binding ValidationError}" 
+                       Foreground="#F48771"
+                       TextWrapping="Wrap"/>
         </Border>
 
-        <!-- Dialog Buttons -->
-        <StackPanel Grid.Row="5" 
+        <!-- Buttons -->
+        <StackPanel Grid.Row="4" 
                     Orientation="Horizontal" 
                     HorizontalAlignment="Right">
-            <Button Content="OK"
+            <Button Content="Create"
                     Command="{Binding OkCommand}"
                     IsEnabled="{Binding IsValid}"
-                    Padding="20,6"
+                    Padding="20,8"
                     Margin="0,0,8,0"
-                    MinWidth="80"/>
+                    MinWidth="90"/>
             <Button Content="Cancel"
                     Command="{Binding CancelCommand}"
-                    Padding="20,6"
-                    MinWidth="80"/>
+                    Padding="20,8"
+                    MinWidth="90"/>
         </StackPanel>
     </Grid>
 </DataTemplate>

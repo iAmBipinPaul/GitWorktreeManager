@@ -109,8 +109,8 @@ public class WorktreeViewModel : INotifyPropertyChanged
 
         try
         {
-            // Show the Add Worktree dialog
-            var dialog = new AddWorktreeDialog(_extensibility);
+            // Show the Add Worktree dialog with GitService for branch loading
+            var dialog = new AddWorktreeDialog(_extensibility, _gitService);
             var result = await dialog.ShowAsync(RepositoryPath, cancellationToken);
 
             if (result == null)
@@ -139,11 +139,12 @@ public class WorktreeViewModel : INotifyPropertyChanged
                 result.WorktreePath,
                 result.BranchName,
                 result.CreateNewBranch,
+                result.BaseBranch,
                 cancellationToken);
 
             if (addResult.Success)
             {
-                SuccessMessage = $"Worktree created successfully at: {result.WorktreePath}";
+                SuccessMessage = $"Worktree '{result.BranchName}' created successfully!";
             }
         }
         catch (Exception ex)
@@ -503,12 +504,14 @@ public class WorktreeViewModel : INotifyPropertyChanged
     /// <param name="worktreePath">The path where the new worktree will be created.</param>
     /// <param name="branchName">The branch name to checkout in the worktree.</param>
     /// <param name="createBranch">If true, creates a new branch.</param>
+    /// <param name="baseBranch">The base branch to create the new branch from.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>A result indicating success or failure with an error message.</returns>
     public async Task<(bool Success, string? ErrorMessage)> AddWorktreeAsync(
         string worktreePath,
         string branchName,
         bool createBranch = false,
+        string? baseBranch = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(RepositoryPath))
@@ -542,6 +545,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
                 worktreePath,
                 branchName,
                 createBranch,
+                baseBranch,
                 cancellationToken);
 
             if (result.Success)
