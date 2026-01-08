@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+  <Metadata>
+    <Identity Id="GitWorktreeManager.e7f8a9b0-c1d2-4e3f-5a6b-7c8d9e0f1a2b" Version="1.0.0" Language="en-US" Publisher="GitWorktreeManager" />
+    <DisplayName>Git Worktree Manager</DisplayName>
+    <Description xml:space="preserve">Manage Git worktrees from within Visual Studio. List, add, remove, and open Git worktrees directly from the IDE without leaving Visual Studio. Features include:
+• View all worktrees for your repository in a dedicated tool window
+• Create new worktrees with branch selection
+• Remove worktrees with safety checks
+• Open worktrees in new Visual Studio instances
+• Automatic refresh when switching solutions</Description>
+    <MoreInfo>https://github.com/gitworktreemanager</MoreInfo>
+    <License>LICENSE.txt</License>
+    <Icon>Resources\icon.png</Icon>
+    <PreviewImage>Resources\preview.png</PreviewImage>
+    <Tags>git, worktree, source control, productivity, version control, branch management</Tags>
+    <ReleaseNotes>Initial release of Git Worktree Manager extension.</ReleaseNotes>
+  </Metadata>
+  <Installation>
+    <!-- Target Visual Studio 2022 version 17.9 and later (required for VisualStudio.Extensibility out-of-process model) -->
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.9,18.0)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Professional" Version="[17.9,18.0)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+    <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.9,18.0)">
+      <ProductArchitecture>amd64</ProductArchitecture>
+    </InstallationTarget>
+  </Installation>
+  <Dependencies>
+    <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.8,)" />
+  </Dependencies>
+  <Prerequisites>
+    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.9,18.0)" DisplayName="Visual Studio core editor" />
+  </Prerequisites>
+  <Assets>
+    <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
+  </Assets>
+</PackageManifest>

@@ -1,0 +1,176 @@
+<DataTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <DataTemplate.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </DataTemplate.Resources>
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar with Add Worktree and Refresh buttons -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="8">
+            <Button Content="+ Add Worktree" 
+                    Command="{Binding AddWorktreeCommand}"
+                    Padding="8,4"
+                    ToolTip="Add a new worktree"/>
+            <Button Content="Refresh" 
+                    Command="{Binding RefreshCommand}"
+                    Padding="8,4"
+                    Margin="8,0,0,0"
+                    ToolTip="Refresh worktree list"/>
+        </StackPanel>
+
+        <!-- Main content area -->
+        <Grid Grid.Row="1">
+            <!-- Loading indicator - shown when IsLoading is true -->
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="Loading worktrees..." 
+                           FontStyle="Italic"
+                           Foreground="Gray"/>
+            </StackPanel>
+
+            <!-- No repository message - shown when ShowNoRepositoryMessage is true -->
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Margin="16"
+                        Visibility="{Binding ShowNoRepositoryMessage, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="No Git Repository" 
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="Open a solution within a Git repository to manage worktrees."
+                           TextWrapping="Wrap"
+                           Foreground="Gray"
+                           HorizontalAlignment="Center"
+                           Margin="0,8,0,0"/>
+            </StackPanel>
+
+            <!-- Worktree list - shown when HasRepository is true -->
+            <ListView ItemsSource="{Binding Worktrees}"
+                      Margin="4"
+                      Visibility="{Binding HasRepository, Converter={StaticResource BoolToVis}}">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Status icons -->
+                            <StackPanel Grid.Column="0" Grid.RowSpan="2" 
+                                        Orientation="Horizontal" 
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,8,0">
+                                <!-- Main worktree indicator -->
+                                <TextBlock Text="[Main]" 
+                                           Visibility="{Binding IsMainWorktree, Converter={StaticResource BoolToVis}}"
+                                           ToolTip="Main worktree"
+                                           Foreground="Blue"
+                                           FontWeight="Bold"
+                                           Margin="0,0,4,0"/>
+                                <!-- Lock indicator -->
+                                <TextBlock Text="[Locked]" 
+                                           Visibility="{Binding IsLocked, Converter={StaticResource BoolToVis}}"
+                                           ToolTip="Worktree is locked"
+                                           Foreground="Orange"
+                                           Margin="0,0,4,0"/>
+                                <!-- Prunable warning indicator -->
+                                <TextBlock Text="[Prunable]" 
+                                           Visibility="{Binding IsPrunable, Converter={StaticResource BoolToVis}}"
+                                           ToolTip="Worktree can be pruned"
+                                           Foreground="Red"
+                                           Margin="0,0,4,0"/>
+                            </StackPanel>
+
+                            <!-- Worktree info -->
+                            <StackPanel Grid.Column="1" Grid.Row="0">
+                                <TextBlock Text="{Binding DisplayPath}" 
+                                           FontWeight="SemiBold"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Horizontal">
+                                <TextBlock Text="Branch: " Foreground="Gray"/>
+                                <TextBlock Text="{Binding BranchName}" 
+                                           Foreground="Green"
+                                           Margin="0,0,12,0"/>
+                                <TextBlock Text="Commit: " Foreground="Gray"/>
+                                <TextBlock Text="{Binding HeadCommit}" 
+                                           Foreground="Gray"
+                                           FontFamily="Consolas"/>
+                            </StackPanel>
+
+                            <!-- Action buttons -->
+                            <StackPanel Grid.Column="2" Grid.RowSpan="2" 
+                                        Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                <Button Content="Open" 
+                                        Command="{Binding DataContext.OpenInNewWindowCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip="Open in new Visual Studio window"
+                                        Padding="6,2"
+                                        Margin="4,0"/>
+                                <Button Content="Remove" 
+                                        Command="{Binding DataContext.RemoveWorktreeCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                        CommandParameter="{Binding}"
+                                        IsEnabled="{Binding CanRemove}"
+                                        ToolTip="Remove worktree"
+                                        Padding="6,2"/>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Grid>
+
+        <!-- Error message bar - shown when HasError is true -->
+        <Border Grid.Row="2" 
+                Background="#FFF0F0" 
+                BorderBrush="#FFCCCC" 
+                BorderThickness="0,1,0,0"
+                Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}">
+            <Grid Margin="8,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Error: " Foreground="Red" FontWeight="Bold"/>
+                <TextBlock Grid.Column="1" 
+                           Text="{Binding ErrorMessage}" 
+                           Foreground="Red"
+                           TextWrapping="Wrap"/>
+            </Grid>
+        </Border>
+
+        <!-- Success message bar - shown when HasSuccess is true -->
+        <Border Grid.Row="2" 
+                Background="#F0FFF0" 
+                BorderBrush="#CCFFCC" 
+                BorderThickness="0,1,0,0"
+                Visibility="{Binding HasSuccess, Converter={StaticResource BoolToVis}}">
+            <Grid Margin="8,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Success: " Foreground="Green" FontWeight="Bold"/>
+                <TextBlock Grid.Column="1" 
+                           Text="{Binding SuccessMessage}" 
+                           Foreground="Green"
+                           TextWrapping="Wrap"/>
+            </Grid>
+        </Border>
+    </Grid>
+</DataTemplate>
