@@ -22,6 +22,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Create New Branch Checkbox - FIRST -->
@@ -62,8 +63,15 @@
                       ToolTip="{Binding BranchSelectorTooltip}"/>
         </Grid>
 
+        <!-- Open After Creation Checkbox -->
+        <CheckBox Grid.Row="3" 
+                  Content="Open in new Visual Studio window"
+                  IsChecked="{Binding OpenAfterCreation, Mode=TwoWay}"
+                  Margin="0,0,0,16"
+                  ToolTip="Opens the new worktree in a new Visual Studio instance after creation"/>
+
         <!-- Validation Error -->
-        <Border Grid.Row="3" 
+        <Border Grid.Row="4" 
                 Background="#442222"
                 Padding="8"
                 Margin="0,0,0,16"
@@ -74,7 +82,7 @@
         </Border>
 
         <!-- Buttons -->
-        <StackPanel Grid.Row="4" 
+        <StackPanel Grid.Row="5" 
                     Orientation="Horizontal" 
                     HorizontalAlignment="Right">
             <Button Content="Create"

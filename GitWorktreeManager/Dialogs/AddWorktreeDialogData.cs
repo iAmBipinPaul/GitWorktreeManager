@@ -18,6 +18,7 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
     private string _branchName = string.Empty;
     private string? _selectedBranch;
     private bool _createNewBranch = true;
+    private bool _openAfterCreation = true;
     private string? _validationError;
     private bool _isValid;
     private string _repositoryPath = string.Empty;
@@ -95,6 +96,16 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
     public string BranchSelectorTooltip => CreateNewBranch 
         ? "Select the branch to base your new branch on" 
         : "Select an existing branch to checkout";
+
+    /// <summary>
+    /// If true, opens the worktree in a new VS instance after creation.
+    /// </summary>
+    [DataMember]
+    public bool OpenAfterCreation
+    {
+        get => _openAfterCreation;
+        set => SetProperty(ref _openAfterCreation, value);
+    }
 
     /// <summary>
     /// Repository path for generating worktree location.
@@ -175,19 +186,26 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
         }
 
         var repoName = Path.GetFileName(RepositoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-        var safeBranchName = SanitizeBranchName(branchForPath);
+        
+        // Sanitize for both path and branch name
+        var safeBranchName = SanitizeBranchName(SanitizeBranchNameInput(branchForPath));
 
         return Path.Combine(repoParent, $"{repoName}-{safeBranchName}");
     }
 
     /// <summary>
     /// Gets the effective branch name for the worktree.
-    /// When creating new branch: returns BranchName.
+    /// When creating new branch: returns sanitized BranchName.
     /// When using existing: returns SelectedBranch.
     /// </summary>
     public string GetEffectiveBranchName()
     {
-        return CreateNewBranch ? BranchName : (SelectedBranch ?? string.Empty);
+        if (CreateNewBranch)
+        {
+            // Sanitize the branch name when actually using it
+            return SanitizeBranchNameInput(BranchName);
+        }
+        return SelectedBranch ?? string.Empty;
     }
 
     private static string SanitizeBranchName(string branchName)
@@ -205,6 +223,32 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// Sanitizes branch name input as user types - replaces invalid characters with dash.
+    /// </summary>
+    private static string SanitizeBranchNameInput(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return input;
+
+        var result = new System.Text.StringBuilder(input.Length);
+        foreach (var c in input)
+        {
+            // Replace spaces and invalid git branch characters with dash
+            if (c == ' ' || c == '\\' || c == ':' || c == '*' || c == '?' || 
+                c == '"' || c == '<' || c == '>' || c == '|' || c == '~' || 
+                c == '^' || c == '[' || c == '@' || char.IsControl(c))
+            {
+                result.Append('-');
+            }
+            else
+            {
+                result.Append(c);
+            }
+        }
+        return result.ToString();
+    }
+
+    /// <summary>
     /// Validates the input based on the current mode.
     /// </summary>
     public void Validate()
@@ -219,18 +263,22 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
                 return;
             }
 
-            if (BranchName.Contains(' '))
-            {
-                ValidationError = "Branch name cannot contain spaces.";
-                IsValid = false;
-                return;
-            }
-
             if (BranchName.StartsWith("-") || BranchName.StartsWith("."))
             {
                 ValidationError = "Branch name cannot start with '-' or '.'.";
                 IsValid = false;
                 return;
+            }
+
+            // Check for invalid characters and show helpful message
+            if (HasInvalidBranchCharacters(BranchName, out var invalidChars))
+            {
+                ValidationError = $"Invalid characters will be replaced with '-': {invalidChars}";
+                // Still valid - we'll sanitize on submit
+            }
+            else
+            {
+                ValidationError = null;
             }
 
             if (string.IsNullOrEmpty(SelectedBranch))
@@ -239,6 +287,8 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
                 IsValid = false;
                 return;
             }
+            
+            IsValid = true;
         }
         else
         {
@@ -249,10 +299,36 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
                 IsValid = false;
                 return;
             }
-        }
 
-        ValidationError = null;
-        IsValid = true;
+            ValidationError = null;
+            IsValid = true;
+        }
+    }
+
+    /// <summary>
+    /// Checks if the branch name contains invalid characters.
+    /// </summary>
+    private static bool HasInvalidBranchCharacters(string input, out string invalidChars)
+    {
+        var invalid = new HashSet<char>();
+        foreach (var c in input)
+        {
+            if (c == ' ' || c == '\\' || c == ':' || c == '*' || c == '?' || 
+                c == '"' || c == '<' || c == '>' || c == '|' || c == '~' || 
+                c == '^' || c == '[' || c == '@' || char.IsControl(c))
+            {
+                invalid.Add(c == ' ' ? '␣' : c); // Show space as visible character
+            }
+        }
+        
+        if (invalid.Count > 0)
+        {
+            invalidChars = string.Join(" ", invalid);
+            return true;
+        }
+        
+        invalidChars = string.Empty;
+        return false;
     }
 
     protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)

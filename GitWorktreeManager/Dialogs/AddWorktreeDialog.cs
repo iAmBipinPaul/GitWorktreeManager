@@ -62,8 +62,11 @@ public class AddWorktreeDialog
             ?? branches.FirstOrDefault(b => b == "master") 
             ?? branches.FirstOrDefault();
 
-        // Create completion source
+        // Create completion source for result
         var resultTcs = new TaskCompletionSource<AddWorktreeDialogResult?>();
+        
+        // Create cancellation source to close the dialog
+        var dialogCts = new CancellationTokenSource();
 
         // Set up commands
         dialogData.OkCommand = new AsyncCommand(async (_, ct) =>
@@ -75,45 +78,51 @@ public class AddWorktreeDialog
                     BranchName = dialogData.GetEffectiveBranchName(),
                     WorktreePath = dialogData.GetWorktreePath(),
                     CreateNewBranch = dialogData.CreateNewBranch,
-                    BaseBranch = dialogData.CreateNewBranch ? dialogData.SelectedBranch : null
+                    BaseBranch = dialogData.CreateNewBranch ? dialogData.SelectedBranch : null,
+                    OpenAfterCreation = dialogData.OpenAfterCreation
                 });
+                // Cancel to close the dialog
+                await dialogCts.CancelAsync();
             }
-            await Task.CompletedTask;
         });
 
         dialogData.CancelCommand = new AsyncCommand(async (_, ct) =>
         {
             resultTcs.TrySetResult(null);
-            await Task.CompletedTask;
+            // Cancel to close the dialog
+            await dialogCts.CancelAsync();
         });
 
         // Show dialog using VS Extensibility
         var dialogControl = new AddWorktreeDialogControl(dialogData);
+        
+        // Link the dialog cancellation with the external cancellation token
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, dialogCts.Token);
         
         try
         {
             await _extensibility.Shell().ShowDialogAsync(
                 dialogControl,
                 "Add Worktree",
-                cancellationToken);
+                linkedCts.Token);
         }
         catch (OperationCanceledException)
         {
-            return null;
+            // Dialog was closed (either by user action or cancellation)
+            // This is expected behavior
+        }
+        finally
+        {
+            dialogCts.Dispose();
         }
 
-        // Wait for result with timeout
-        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
-
-        try
+        // Return the result (will be null if cancelled)
+        if (resultTcs.Task.IsCompleted)
         {
-            return await resultTcs.Task.WaitAsync(linkedCts.Token);
+            return await resultTcs.Task;
         }
-        catch (OperationCanceledException)
-        {
-            return null;
-        }
+        
+        return null;
     }
 
     private async Task<List<string>> LoadBranchesAsync(
@@ -151,4 +160,5 @@ public class AddWorktreeDialogResult
     public required string WorktreePath { get; init; }
     public bool CreateNewBranch { get; init; }
     public string? BaseBranch { get; init; }
+    public bool OpenAfterCreation { get; init; }
 }

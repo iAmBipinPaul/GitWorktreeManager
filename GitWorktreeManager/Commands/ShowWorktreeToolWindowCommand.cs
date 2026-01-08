@@ -6,7 +6,7 @@ namespace GitWorktreeManager.Commands;
 
 /// <summary>
 /// Command to show the Worktree Manager tool window.
-/// Placed in the View menu for easy access.
+/// Placed in View > Other Windows menu and Extensions menu for easy access.
 /// </summary>
 [VisualStudioContribution]
 public class ShowWorktreeToolWindowCommand : Command
@@ -23,8 +23,11 @@ public class ShowWorktreeToolWindowCommand : Command
     /// </summary>
     public override CommandConfiguration CommandConfiguration => new("%GitWorktreeManager.ShowWorktreeToolWindowCommand.DisplayName%")
     {
-        // Place the command in the View menu
-        Placements = [CommandPlacement.KnownPlacements.ViewOtherWindowsMenu],
+        // Place the command in View > Other Windows AND Extensions menu
+        Placements = [
+            CommandPlacement.KnownPlacements.ViewOtherWindowsMenu,
+            CommandPlacement.KnownPlacements.ExtensionsMenu
+        ],
         Icon = new(ImageMoniker.KnownValues.GitRepository, IconSettings.IconAndText),
     };
 

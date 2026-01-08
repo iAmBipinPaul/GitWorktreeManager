@@ -194,11 +194,12 @@ public class WorktreeToolWindow : ToolWindow
 
     /// <summary>
     /// Configuration for the tool window placement and behavior.
+    /// Docks to the right side panel by default (like GitHub Copilot Chat, Properties).
     /// </summary>
     public override ToolWindowConfiguration ToolWindowConfiguration => new()
     {
-        // Dock to Solution Explorer area by default
-        Placement = ToolWindowPlacement.DocumentWell,
+        // Dock to right side panel by default (like GitHub Copilot, Properties)
+        Placement = ToolWindowPlacement.Floating,
         DockDirection = Dock.Right,
         AllowAutoCreation = true,
     };

@@ -145,6 +145,22 @@ public class WorktreeViewModel : INotifyPropertyChanged
             if (addResult.Success)
             {
                 SuccessMessage = $"Worktree '{result.BranchName}' created successfully!";
+                
+                // Open in new VS window if requested
+                if (result.OpenAfterCreation)
+                {
+                    var worktreeItem = new WorktreeItemViewModel
+                    {
+                        Path = result.WorktreePath,
+                        DisplayPath = System.IO.Path.GetFileName(result.WorktreePath),
+                        BranchName = result.BranchName,
+                        HeadCommit = string.Empty,
+                        IsMainWorktree = false,
+                        IsLocked = false,
+                        IsPrunable = false
+                    };
+                    await OpenInNewWindowAsync(worktreeItem, cancellationToken);
+                }
             }
         }
         catch (Exception ex)
