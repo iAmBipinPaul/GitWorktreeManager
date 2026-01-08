@@ -487,6 +487,15 @@ public class WorktreeViewModel : INotifyPropertyChanged
             return (false, errorMsg);
         }
 
+        // Check if this is the currently open worktree
+        if (IsCurrentWorktree(worktreeItem.Path))
+        {
+            var errorMsg = "Cannot remove the currently open worktree. Please close this solution first or switch to a different worktree.";
+            ErrorMessage = errorMsg;
+            await ShowErrorNotificationAsync(errorMsg, cancellationToken);
+            return (false, errorMsg);
+        }
+
         IsLoading = true;
         ErrorMessage = null;
         SuccessMessage = null;
@@ -512,15 +521,39 @@ public class WorktreeViewModel : INotifyPropertyChanged
             }
             else
             {
-                ErrorMessage = result.ErrorMessage;
+                // Check for common error patterns and provide friendly messages
+                var errorMessage = result.ErrorMessage ?? "Unknown error";
+                var folderStillExists = System.IO.Directory.Exists(worktreeItem.Path);
                 
-                // Show notification with git stderr details
+                if (errorMessage.Contains("failed to delete") || errorMessage.Contains("Invalid argument"))
+                {
+                    if (folderStillExists)
+                    {
+                        // Git removed the reference but couldn't delete the folder
+                        errorMessage = $"Git worktree reference removed, but the folder could not be deleted (files are in use).\n\nPlease manually delete: {worktreeItem.Path}";
+                        
+                        // Still refresh the list since the git reference is gone
+                        await RefreshAsync(cancellationToken);
+                    }
+                    else
+                    {
+                        errorMessage = "Cannot remove worktree - files may be in use. Please close any open files or applications using this worktree.";
+                    }
+                }
+                else if (errorMessage.Contains("modified or untracked files"))
+                {
+                    errorMessage = "Worktree has uncommitted changes. Commit or stash your changes first.";
+                }
+                
+                ErrorMessage = errorMessage;
+                
+                // Show notification with details
                 await ShowErrorNotificationAsync(
                     "Failed to remove worktree", 
-                    result.ErrorMessage, 
+                    errorMessage, 
                     cancellationToken);
                 
-                return (false, result.ErrorMessage);
+                return (false, errorMessage);
             }
         }
         catch (Exception ex)
@@ -707,5 +740,24 @@ public class WorktreeViewModel : INotifyPropertyChanged
         {
             await _notificationService.ShowErrorAsync(message, details, cancellationToken);
         }
+    }
+
+    /// <summary>
+    /// Checks if the given path is the currently open worktree/solution.
+    /// </summary>
+    private bool IsCurrentWorktree(string worktreePath)
+    {
+        if (string.IsNullOrEmpty(RepositoryPath) || string.IsNullOrEmpty(worktreePath))
+            return false;
+
+        // Normalize paths for comparison
+        var normalizedRepo = System.IO.Path.GetFullPath(RepositoryPath).TrimEnd(
+            System.IO.Path.DirectorySeparatorChar, 
+            System.IO.Path.AltDirectorySeparatorChar);
+        var normalizedWorktree = System.IO.Path.GetFullPath(worktreePath).TrimEnd(
+            System.IO.Path.DirectorySeparatorChar, 
+            System.IO.Path.AltDirectorySeparatorChar);
+
+        return string.Equals(normalizedRepo, normalizedWorktree, StringComparison.OrdinalIgnoreCase);
     }
 }
