@@ -1,145 +1,175 @@
 <DataTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
               xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
               xmlns:vs="http://schemas.microsoft.com/visualstudio/extensibility/2022/xaml"
+              xmlns:styles="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
               xmlns:colors="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0">
     
-    <DataTemplate.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-    </DataTemplate.Resources>
-    
-    <Border Background="{DynamicResource {x:Static colors:EnvironmentColors.ToolWindowBackgroundBrushKey}}">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+    <Grid x:Name="RootGrid">
+        <Grid.Resources>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+            <Style TargetType="Button" BasedOn="{StaticResource {x:Static styles:VsResourceKeys.ButtonStyleKey}}" />
+            <Style TargetType="ListView" BasedOn="{StaticResource {x:Static styles:VsResourceKeys.ThemedDialogListViewStyleKey}}" />
+            <Style TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource {x:Static styles:VsBrushes.WindowTextKey}}" />
+            </Style>
+        </Grid.Resources>
+        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
-            <!-- Toolbar -->
-            <Border Grid.Row="0" 
-                    Background="{DynamicResource {x:Static colors:EnvironmentColors.CommandBarGradientBeginBrushKey}}" 
-                    BorderBrush="{DynamicResource {x:Static colors:EnvironmentColors.ToolWindowBorderBrushKey}}" 
-                    BorderThickness="0,0,0,1" 
-                    Padding="8,6">
-                <StackPanel Orientation="Horizontal">
-                    <Button Command="{Binding AddWorktreeCommand}" Padding="10,5" Margin="0,0,6,0">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="+" FontWeight="Bold" Margin="0,0,6,0" Foreground="{DynamicResource {x:Static colors:EnvironmentColors.ToolWindowTextBrushKey}}"/>
-                            <TextBlock Text="Add Worktree" Foreground="{DynamicResource {x:Static colors:EnvironmentColors.ToolWindowTextBrushKey}}"/>
-                        </StackPanel>
-                    </Button>
-                    <Button Command="{Binding RefreshCommand}" Content="Refresh" Padding="10,5"/>
-                </StackPanel>
-            </Border>
+        <!-- Toolbar -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource {x:Static colors:EnvironmentColors.CommandBarGradientBeginBrushKey}}" 
+                BorderBrush="{DynamicResource {x:Static colors:EnvironmentColors.ToolWindowBorderBrushKey}}" 
+                BorderThickness="0,0,0,1" 
+                Padding="8,6">
+            <StackPanel Orientation="Horizontal">
+                <Button Command="{Binding AddWorktreeCommand}" 
+                        IsEnabled="{Binding AddWorktreeCommand.RunningCommandsCount.IsZero}"
+                        Padding="8,4" 
+                        Margin="0,0,6,0">
+                    <StackPanel Orientation="Horizontal">
+                        <vs:Image Source="KnownMonikers.Add" Margin="0,0,6,0"/>
+                        <TextBlock Text="Add Worktree"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding RefreshCommand}" 
+                        IsEnabled="{Binding RefreshCommand.RunningCommandsCount.IsZero}"
+                        Padding="8,4">
+                    <StackPanel Orientation="Horizontal">
+                        <vs:Image Source="KnownMonikers.Refresh" Margin="0,0,6,0"/>
+                        <TextBlock Text="Refresh"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
 
-            <!-- Content -->
-            <Grid Grid.Row="1">
-                <TextBlock Text="Loading..." 
+        <!-- Content -->
+        <Grid Grid.Row="1" Background="{DynamicResource {x:Static colors:EnvironmentColors.ToolWindowBackgroundBrushKey}}">
+            <TextBlock Text="Loading..." 
+                       HorizontalAlignment="Center" 
+                       VerticalAlignment="Center" 
+                       Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"/>
+
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20" 
+                        Visibility="{Binding ShowNoRepositoryMessage, Converter={StaticResource BoolToVis}}">
+                <vs:Image Source="KnownMonikers.GitNoColor" Width="48" Height="48" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                <TextBlock Text="No Git Repository" 
+                           FontSize="14" 
+                           FontWeight="SemiBold" 
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="Open a solution in a Git repository" 
+                           FontSize="12" 
                            HorizontalAlignment="Center" 
-                           VerticalAlignment="Center" 
-                           Foreground="{DynamicResource {x:Static colors:EnvironmentColors.ToolWindowTextBrushKey}}" 
-                           Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"/>
+                           Margin="0,8,0,0"
+                           Foreground="{DynamicResource {x:Static colors:EnvironmentColors.ToolWindowTextBrushKey}}"/>
+            </StackPanel>
 
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20" 
-                            Visibility="{Binding ShowNoRepositoryMessage, Converter={StaticResource BoolToVis}}">
-                    <TextBlock Text="No Git Repository" 
-                               FontSize="14" 
-                               FontWeight="SemiBold" 
-                               HorizontalAlignment="Center"
-                               Foreground="{DynamicResource {x:Static colors:EnvironmentColors.ToolWindowTextBrushKey}}"/>
-                    <TextBlock Text="Open a solution in a Git repository" 
-                               FontSize="12" 
-                               HorizontalAlignment="Center" 
-                               Margin="0,8,0,0"
-                               Foreground="{DynamicResource {x:Static colors:EnvironmentColors.ToolWindowTextBrushKey}}"/>
-                </StackPanel>
+            <ListView ItemsSource="{Binding Worktrees}" 
+                      Margin="8"
+                      HorizontalContentAlignment="Stretch"
+                      Visibility="{Binding HasRepository, Converter={StaticResource BoolToVis}}">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="4">
+                            <Grid.Resources>
+                                <Style TargetType="Button" BasedOn="{StaticResource {x:Static styles:VsResourceKeys.ButtonStyleKey}}" />
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource {x:Static styles:VsBrushes.WindowTextKey}}" />
+                                </Style>
+                            </Grid.Resources>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Visibility="{Binding HasRepository, Converter={StaticResource BoolToVis}}">
-                    <ItemsControl ItemsSource="{Binding Worktrees}" Margin="8">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Background="{DynamicResource {x:Static colors:EnvironmentColors.ToolWindowContentGridBrushKey}}" 
-                                        BorderBrush="{DynamicResource {x:Static colors:EnvironmentColors.ToolWindowBorderBrushKey}}" 
-                                        BorderThickness="1" 
-                                        Padding="12,10" 
-                                        Margin="0,0,0,6">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <vs:Image Source="KnownMonikers.BranchFolderClosed" Margin="0,0,8,0"/>
+                                    <TextBlock Text="{Binding DisplayPath}" 
+                                               FontWeight="SemiBold" 
+                                               FontSize="13"
+                                               VerticalAlignment="Center"/>
+                                    <Border Visibility="{Binding IsMainWorktree, Converter={StaticResource BoolToVis}}" 
+                                            Background="#0078D4" 
+                                            Padding="6,2" 
+                                            Margin="8,0,0,0">
+                                        <TextBlock Text="main" FontSize="10" Foreground="White"/>
+                                    </Border>
+                                    <Border Visibility="{Binding IsLocked, Converter={StaticResource BoolToVis}}" 
+                                            Background="#CA8A04" 
+                                            Padding="6,2" 
+                                            Margin="4,0,0,0">
+                                        <TextBlock Text="locked" FontSize="10" Foreground="White"/>
+                                    </Border>
+                                    <Border Visibility="{Binding IsPrunable, Converter={StaticResource BoolToVis}}" 
+                                            Background="#DC2626" 
+                                            Padding="6,2" 
+                                            Margin="4,0,0,0">
+                                        <TextBlock Text="prunable" FontSize="10" Foreground="White"/>
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="24,4,0,0">
+                                    <vs:Image Source="KnownMonikers.Branch" Margin="0,0,4,0"/>
+                                    <TextBlock Text="{Binding BranchName}" 
+                                               FontSize="12" 
+                                               Foreground="#4EC9B0"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text=" · " FontSize="12" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding HeadCommit}" 
+                                               FontSize="12" 
+                                               FontFamily="Consolas"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </StackPanel>
 
-                                        <StackPanel Grid.Column="0">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding DisplayPath}" 
-                                                           FontWeight="SemiBold" 
-                                                           FontSize="13"
-                                                           Foreground="{DynamicResource {x:Static colors:EnvironmentColors.ToolWindowTextBrushKey}}"/>
-                                                <Border Visibility="{Binding IsMainWorktree, Converter={StaticResource BoolToVis}}" 
-                                                        Background="#0078D4" 
-                                                        Padding="6,2" 
-                                                        Margin="8,0,0,0">
-                                                    <TextBlock Text="main" FontSize="10" Foreground="White"/>
-                                                </Border>
-                                                <Border Visibility="{Binding IsLocked, Converter={StaticResource BoolToVis}}" 
-                                                        Background="#CA8A04" 
-                                                        Padding="6,2" 
-                                                        Margin="4,0,0,0">
-                                                    <TextBlock Text="locked" FontSize="10" Foreground="White"/>
-                                                </Border>
-                                                <Border Visibility="{Binding IsPrunable, Converter={StaticResource BoolToVis}}" 
-                                                        Background="#DC2626" 
-                                                        Padding="6,2" 
-                                                        Margin="4,0,0,0">
-                                                    <TextBlock Text="prunable" FontSize="10" Foreground="White"/>
-                                                </Border>
-                                            </StackPanel>
-                                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                                <TextBlock Text="{Binding BranchName}" 
-                                                           FontSize="12" 
-                                                           Foreground="#4EC9B0"/>
-                                                <TextBlock Text=" · " 
-                                                           FontSize="12"
-                                                           Foreground="{DynamicResource {x:Static colors:EnvironmentColors.ToolWindowTextBrushKey}}"/>
-                                                <TextBlock Text="{Binding HeadCommit}" 
-                                                           FontSize="12" 
-                                                           FontFamily="Consolas"
-                                                           Foreground="{DynamicResource {x:Static colors:EnvironmentColors.ToolWindowTextBrushKey}}"/>
-                                            </StackPanel>
-                                        </StackPanel>
-
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
-                                            <Button Command="{Binding DataContext.OpenInNewWindowCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
-                                                    CommandParameter="{Binding}" 
-                                                    Content="Open" 
-                                                    Padding="10,5" 
-                                                    Margin="0,0,4,0"/>
-                                            <Button Command="{Binding DataContext.RemoveWorktreeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" 
-                                                    CommandParameter="{Binding}" 
-                                                    IsEnabled="{Binding CanRemove}" 
-                                                    Content="Remove" 
-                                                    Padding="10,5"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-            </Grid>
-
-            <Border Grid.Row="2" 
-                    Background="#442222" 
-                    Padding="12,8" 
-                    Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}">
-                <TextBlock Text="{Binding ErrorMessage}" Foreground="#F48771" FontSize="12"/>
-            </Border>
-            <Border Grid.Row="2" 
-                    Background="#224422" 
-                    Padding="12,8" 
-                    Visibility="{Binding HasSuccess, Converter={StaticResource BoolToVis}}">
-                <TextBlock Text="{Binding SuccessMessage}" Foreground="#4EC9B0" FontSize="12"/>
-            </Border>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                                <Button Command="{Binding DataContext.OpenInNewWindowCommand, ElementName=RootGrid}" 
+                                        CommandParameter="{Binding}" 
+                                        Padding="8,4" 
+                                        Margin="0,0,4,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <vs:Image Source="KnownMonikers.OpenFolder" Margin="0,0,4,0"/>
+                                        <TextBlock Text="Open"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding DataContext.RemoveWorktreeCommand, ElementName=RootGrid}" 
+                                        CommandParameter="{Binding}" 
+                                        IsEnabled="{Binding CanRemove}" 
+                                        Padding="8,4">
+                                    <StackPanel Orientation="Horizontal">
+                                        <vs:Image Source="KnownMonikers.Cancel" Margin="0,0,4,0"/>
+                                        <TextBlock Text="Remove"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
         </Grid>
-    </Border>
+
+        <!-- Error/Success Messages -->
+        <Border Grid.Row="2" 
+                Background="#442222" 
+                Padding="12,8" 
+                Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}">
+            <StackPanel Orientation="Horizontal">
+                <vs:Image Source="KnownMonikers.StatusError" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="#F48771" FontSize="12"/>
+            </StackPanel>
+        </Border>
+        <Border Grid.Row="2" 
+                Background="#224422" 
+                Padding="12,8" 
+                Visibility="{Binding HasSuccess, Converter={StaticResource BoolToVis}}">
+            <StackPanel Orientation="Horizontal">
+                <vs:Image Source="KnownMonikers.StatusOK" Margin="0,0,8,0"/>
+                <TextBlock Text="{Binding SuccessMessage}" Foreground="#4EC9B0" FontSize="12"/>
+            </StackPanel>
+        </Border>
+    </Grid>
 </DataTemplate>
