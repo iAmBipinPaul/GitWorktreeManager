@@ -47,9 +47,19 @@ public class WorktreeViewModel : INotifyPropertyChanged
         AddWorktreeCommand = new AsyncCommand(async (_, ct) => await OnAddWorktreeCommandAsync(ct));
         RemoveWorktreeCommand = new AsyncCommand(async (param, ct) => 
         {
+            // Debug: Log what we received
+            System.Diagnostics.Debug.WriteLine($"RemoveWorktreeCommand received param type: {param?.GetType().Name ?? "null"}");
+            
             if (param is WorktreeItemViewModel item)
             {
                 await RemoveWorktreeAsync(item, force: false, ct);
+            }
+            else
+            {
+                // Parameter wasn't the expected type - show error
+                var errorMsg = $"Remove command received unexpected parameter: {param?.GetType().Name ?? "null"}";
+                System.Diagnostics.Debug.WriteLine(errorMsg);
+                await ShowErrorNotificationAsync("Failed to remove worktree - invalid selection", ct);
             }
         });
         OpenInNewWindowCommand = new AsyncCommand(async (param, ct) =>
@@ -442,9 +452,12 @@ public class WorktreeViewModel : INotifyPropertyChanged
         bool force = false,
         CancellationToken cancellationToken = default)
     {
+        System.Diagnostics.Debug.WriteLine($"RemoveWorktreeAsync called for: {worktreeItem?.Path ?? "null"}");
+        
         if (string.IsNullOrEmpty(RepositoryPath))
         {
             var errorMsg = "No repository is currently open";
+            ErrorMessage = errorMsg;
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
         }
@@ -452,6 +465,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
         if (worktreeItem == null)
         {
             var errorMsg = "No worktree selected";
+            ErrorMessage = errorMsg;
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
         }
@@ -460,6 +474,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
         if (worktreeItem.IsMainWorktree)
         {
             var errorMsg = "Cannot remove the main worktree";
+            ErrorMessage = errorMsg;
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
         }
@@ -467,23 +482,30 @@ public class WorktreeViewModel : INotifyPropertyChanged
         if (!worktreeItem.CanRemove)
         {
             var errorMsg = "This worktree cannot be removed";
+            ErrorMessage = errorMsg;
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
         }
 
         IsLoading = true;
         ErrorMessage = null;
+        SuccessMessage = null;
 
         try
         {
+            System.Diagnostics.Debug.WriteLine($"Calling GitService.RemoveWorktreeAsync for: {worktreeItem.Path}");
+            
             var result = await _gitService.RemoveWorktreeAsync(
                 RepositoryPath,
                 worktreeItem.Path,
                 force,
                 cancellationToken);
 
+            System.Diagnostics.Debug.WriteLine($"RemoveWorktreeAsync result: Success={result.Success}, Error={result.ErrorMessage}");
+
             if (result.Success)
             {
+                SuccessMessage = $"Worktree '{worktreeItem.DisplayPath}' removed successfully!";
                 // Refresh the list to reflect the removal
                 await RefreshAsync(cancellationToken);
                 return (true, null);
@@ -505,6 +527,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
         {
             var errorMsg = $"Error removing worktree: {ex.Message}";
             ErrorMessage = errorMsg;
+            System.Diagnostics.Debug.WriteLine($"Exception in RemoveWorktreeAsync: {ex}");
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
         }

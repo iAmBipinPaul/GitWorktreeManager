@@ -23,6 +23,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Create New Branch Checkbox - FIRST -->
@@ -33,7 +34,7 @@
                   ToolTip="Check to create a new branch, uncheck to use an existing branch"/>
 
         <!-- Branch Name Input (only when creating new branch) -->
-        <Grid Grid.Row="1" Margin="0,0,0,16" Visibility="{Binding CreateNewBranch, Converter={StaticResource BoolToVis}}">
+        <Grid Grid.Row="1" Margin="0,0,0,8" Visibility="{Binding CreateNewBranch, Converter={StaticResource BoolToVis}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="100"/>
                 <ColumnDefinition Width="*"/>
@@ -47,8 +48,16 @@
                      ToolTip="Enter the name for the new branch (e.g., feature/my-work)"/>
         </Grid>
 
+        <!-- Branch Name Preview (shows sanitized name) -->
+        <TextBlock Grid.Row="2" 
+                   Text="{Binding BranchNamePreview}"
+                   Foreground="#6A9955"
+                   FontStyle="Italic"
+                   Margin="100,0,0,16"
+                   Visibility="{Binding ShowBranchPreview, Converter={StaticResource BoolToVis}}"/>
+
         <!-- Based On / Select Branch Row -->
-        <Grid Grid.Row="2" Margin="0,0,0,16">
+        <Grid Grid.Row="3" Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="100"/>
                 <ColumnDefinition Width="*"/>
@@ -64,14 +73,14 @@
         </Grid>
 
         <!-- Open After Creation Checkbox -->
-        <CheckBox Grid.Row="3" 
+        <CheckBox Grid.Row="4" 
                   Content="Open in new Visual Studio window"
                   IsChecked="{Binding OpenAfterCreation, Mode=TwoWay}"
                   Margin="0,0,0,16"
                   ToolTip="Opens the new worktree in a new Visual Studio instance after creation"/>
 
         <!-- Validation Error -->
-        <Border Grid.Row="4" 
+        <Border Grid.Row="5" 
                 Background="#442222"
                 Padding="8"
                 Margin="0,0,0,16"
@@ -82,7 +91,7 @@
         </Border>
 
         <!-- Buttons -->
-        <StackPanel Grid.Row="5" 
+        <StackPanel Grid.Row="6" 
                     Orientation="Horizontal" 
                     HorizontalAlignment="Right">
             <Button Content="Create"

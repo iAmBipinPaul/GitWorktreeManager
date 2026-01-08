@@ -42,10 +42,36 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
         {
             if (SetProperty(ref _branchName, value))
             {
+                OnPropertyChanged(nameof(BranchNamePreview));
+                OnPropertyChanged(nameof(ShowBranchPreview));
                 Validate();
             }
         }
     }
+
+    /// <summary>
+    /// Preview of the sanitized branch name that will be created.
+    /// </summary>
+    [DataMember]
+    public string BranchNamePreview
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(BranchName))
+                return string.Empty;
+            
+            var sanitized = SanitizeBranchNameInput(BranchName);
+            return sanitized != BranchName 
+                ? $"Will create: {sanitized}" 
+                : string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Whether to show the branch name preview (only when sanitization changes the name).
+    /// </summary>
+    [DataMember]
+    public bool ShowBranchPreview => CreateNewBranch && !string.IsNullOrEmpty(BranchNamePreview);
 
     /// <summary>
     /// The selected branch from dropdown.
@@ -78,6 +104,7 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
             {
                 OnPropertyChanged(nameof(BranchSelectorLabel));
                 OnPropertyChanged(nameof(BranchSelectorTooltip));
+                OnPropertyChanged(nameof(ShowBranchPreview));
                 Validate();
             }
         }
@@ -263,22 +290,12 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
                 return;
             }
 
-            if (BranchName.StartsWith("-") || BranchName.StartsWith("."))
+            var sanitized = SanitizeBranchNameInput(BranchName);
+            if (sanitized.StartsWith("-") || sanitized.StartsWith("."))
             {
                 ValidationError = "Branch name cannot start with '-' or '.'.";
                 IsValid = false;
                 return;
-            }
-
-            // Check for invalid characters and show helpful message
-            if (HasInvalidBranchCharacters(BranchName, out var invalidChars))
-            {
-                ValidationError = $"Invalid characters will be replaced with '-': {invalidChars}";
-                // Still valid - we'll sanitize on submit
-            }
-            else
-            {
-                ValidationError = null;
             }
 
             if (string.IsNullOrEmpty(SelectedBranch))
@@ -288,6 +305,7 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
                 return;
             }
             
+            ValidationError = null;
             IsValid = true;
         }
         else
@@ -303,32 +321,6 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
             ValidationError = null;
             IsValid = true;
         }
-    }
-
-    /// <summary>
-    /// Checks if the branch name contains invalid characters.
-    /// </summary>
-    private static bool HasInvalidBranchCharacters(string input, out string invalidChars)
-    {
-        var invalid = new HashSet<char>();
-        foreach (var c in input)
-        {
-            if (c == ' ' || c == '\\' || c == ':' || c == '*' || c == '?' || 
-                c == '"' || c == '<' || c == '>' || c == '|' || c == '~' || 
-                c == '^' || c == '[' || c == '@' || char.IsControl(c))
-            {
-                invalid.Add(c == ' ' ? '␣' : c); // Show space as visible character
-            }
-        }
-        
-        if (invalid.Count > 0)
-        {
-            invalidChars = string.Join(" ", invalid);
-            return true;
-        }
-        
-        invalidChars = string.Empty;
-        return false;
     }
 
     protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
