@@ -5,7 +5,7 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     </DataTemplate.Resources>
     
-    <Grid MinWidth="400" Margin="16">
+    <Grid MinWidth="400" Margin="16" Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -20,11 +20,14 @@
                    Text="Add New Worktree" 
                    FontSize="16" 
                    FontWeight="SemiBold"
-                   Margin="0,0,0,16"/>
+                   Margin="0,0,0,16"
+                   Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
 
         <!-- Branch Name Input -->
         <StackPanel Grid.Row="1" Margin="0,0,0,12">
-            <TextBlock Text="Branch Name:" Margin="0,0,0,4"/>
+            <TextBlock Text="Branch Name:" 
+                       Margin="0,0,0,4"
+                       Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
             <TextBox Text="{Binding BranchName, Mode=TwoWay}"
                      Padding="6,4"
                      ToolTip="Enter the name of the branch to checkout or create"/>
@@ -35,11 +38,14 @@
                   Content="Create new branch (if it doesn't exist)"
                   IsChecked="{Binding CreateNewBranch, Mode=TwoWay}"
                   Margin="0,0,0,12"
+                  Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"
                   ToolTip="Check this to create a new branch with the specified name"/>
 
         <!-- Worktree Location Input -->
         <StackPanel Grid.Row="3" Margin="0,0,0,12">
-            <TextBlock Text="Worktree Location:" Margin="0,0,0,4"/>
+            <TextBlock Text="Worktree Location:" 
+                       Margin="0,0,0,4"
+                       Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -59,16 +65,16 @@
 
         <!-- Validation Error Message -->
         <Border Grid.Row="4" 
-                Background="#FFF0F0" 
-                BorderBrush="#FFCCCC" 
+                Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"
+                BorderBrush="OrangeRed"
                 BorderThickness="1"
                 Padding="8"
                 Margin="0,0,0,16"
                 Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVis}}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Error: " Foreground="Red" FontWeight="Bold"/>
+                <TextBlock Text="Error: " Foreground="OrangeRed" FontWeight="Bold"/>
                 <TextBlock Text="{Binding ValidationError}" 
-                           Foreground="Red"
+                           Foreground="OrangeRed"
                            TextWrapping="Wrap"/>
             </StackPanel>
         </Border>
