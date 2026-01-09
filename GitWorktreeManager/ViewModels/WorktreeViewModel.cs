@@ -604,6 +604,23 @@ public class WorktreeViewModel : INotifyPropertyChanged
             return (false, errorMsg);
         }
 
+        // Show confirmation dialog
+        if (_extensibility != null)
+        {
+            var confirmMessage = $"Are you sure you want to remove the worktree '{worktreeItem.DisplayPath}'?\n\nBranch: {worktreeItem.BranchName}\nPath: {worktreeItem.Path}\n\nThis will delete the worktree folder and its contents.";
+            
+            var result = await _extensibility.Shell().ShowPromptAsync(
+                confirmMessage,
+                Microsoft.VisualStudio.Extensibility.Shell.PromptOptions.OKCancel,
+                cancellationToken);
+
+            if (result != true)
+            {
+                // User cancelled
+                return (false, null);
+            }
+        }
+
         IsLoading = true;
         ErrorMessage = null;
         SuccessMessage = null;
