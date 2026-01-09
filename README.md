@@ -1,5 +1,9 @@
 # Git Worktree Manager for Visual Studio
 
+<p align="center">
+  <img src="docs/icon.svg" alt="Git Worktree Manager" width="128" height="128">
+</p>
+
 A Visual Studio extension that provides an intuitive interface for managing Git worktrees directly within the IDE.
 
 ![Git Worktree Manager Overview](docs/screenshots/Overview.png)

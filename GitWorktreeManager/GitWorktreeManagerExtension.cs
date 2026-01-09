@@ -30,7 +30,7 @@ public class GitWorktreeManagerExtension : Extension
         Metadata = new(
             id: "GitWorktreeManager.e7f8a9b0-c1d2-4e3f-5a6b-7c8d9e0f1a2b",
             version: ExtensionAssemblyVersion,
-            publisherName: "GitWorktreeManager",
+            publisherName: "Bipin Paul",
             displayName: "Git Worktree Manager",
             description: "Manage Git worktrees from within Visual Studio. List, add, remove, and open Git worktrees directly from the IDE without leaving Visual Studio.")
     };

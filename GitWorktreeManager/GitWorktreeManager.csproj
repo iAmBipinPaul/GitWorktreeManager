@@ -13,7 +13,7 @@
     
     <!-- Extension Metadata -->
     <Version>1.0.0</Version>
-    <Authors>GitWorktreeManager</Authors>
+    <Authors>Bipin Paul</Authors>
     <Description>Manage Git worktrees from within Visual Studio</Description>
   </PropertyGroup>
 
