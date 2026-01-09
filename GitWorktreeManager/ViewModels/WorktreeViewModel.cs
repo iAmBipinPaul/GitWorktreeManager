@@ -765,44 +765,42 @@ public class WorktreeViewModel : INotifyPropertyChanged
     /// </summary>
     private async Task OpenInExplorerAsync(WorktreeItemViewModel worktreeItem, CancellationToken cancellationToken)
     {
-        System.Diagnostics.Debug.WriteLine($"OpenInExplorerAsync called");
-        
-        if (worktreeItem == null || string.IsNullOrEmpty(worktreeItem.Path))
+        // Validate input
+        if (worktreeItem == null)
         {
-            System.Diagnostics.Debug.WriteLine($"OpenInExplorerAsync: worktreeItem is null or path is empty");
+            ErrorMessage = "No worktree selected";
+            return;
+        }
+        
+        if (string.IsNullOrEmpty(worktreeItem.Path))
+        {
+            ErrorMessage = "Worktree path is empty";
+            return;
+        }
+
+        var path = worktreeItem.Path;
+        
+        // Ensure the path exists
+        if (!System.IO.Directory.Exists(path))
+        {
+            ErrorMessage = $"Directory does not exist: {path}";
             return;
         }
 
         try
         {
-            var path = worktreeItem.Path;
-            System.Diagnostics.Debug.WriteLine($"OpenInExplorerAsync: Opening path: {path}");
-            
-            // Ensure the path exists
-            if (!System.IO.Directory.Exists(path))
+            // Use ProcessStartInfo with the folder path directly
+            // Setting UseShellExecute = true and FileName = path opens the folder
+            var psi = new System.Diagnostics.ProcessStartInfo
             {
-                ErrorMessage = $"Directory does not exist: {path}";
-                System.Diagnostics.Debug.WriteLine($"OpenInExplorerAsync: Directory does not exist: {path}");
-                return;
-            }
-
-            await Task.Run(() =>
-            {
-                // Open the folder using explorer.exe with the path as argument
-                var psi = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = $"\"{path}\"",
-                    UseShellExecute = false
-                };
-                System.Diagnostics.Process.Start(psi);
-            }, cancellationToken);
-            
-            System.Diagnostics.Debug.WriteLine($"OpenInExplorerAsync: Process started successfully");
+                FileName = path,
+                UseShellExecute = true,
+                Verb = "open"
+            };
+            System.Diagnostics.Process.Start(psi);
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"OpenInExplorerAsync: Exception: {ex.Message}");
             ErrorMessage = $"Failed to open Explorer: {ex.Message}";
         }
     }
