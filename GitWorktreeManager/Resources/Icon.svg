@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Background circle - Slate 950 -->
+  <circle cx="64" cy="64" r="60" fill="#020617"/>
+  
+  <!-- Outer ring - Primary Purple -->
+  <circle cx="64" cy="64" r="60" fill="none" stroke="#764AF1" stroke-width="4"/>
+  
+  <!-- Main trunk (vertical line) - Primary Purple -->
+  <line x1="64" y1="100" x2="64" y2="40" stroke="#764AF1" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- Left branch - Accent Cyan -->
+  <path d="M64 70 Q44 70 34 50" stroke="#06B6D4" stroke-width="6" stroke-linecap="round" fill="none"/>
+  
+  <!-- Right branch - Accent Pink -->
+  <path d="M64 55 Q84 55 94 35" stroke="#EC4899" stroke-width="6" stroke-linecap="round" fill="none"/>
+  
+  <!-- Node circles (worktrees) -->
+  <circle cx="64" cy="40" r="8" fill="#A78BFA"/>
+  <circle cx="34" cy="50" r="8" fill="#06B6D4"/>
+  <circle cx="94" cy="35" r="8" fill="#EC4899"/>
+  
+  <!-- Root node - Primary Purple -->
+  <circle cx="64" cy="100" r="10" fill="#764AF1"/>
+</svg>
