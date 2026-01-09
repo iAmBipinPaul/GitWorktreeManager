@@ -93,6 +93,25 @@ public class AddWorktreeDialog
             await dialogCts.CancelAsync();
         });
 
+        // Command to handle Enter key in TextBox - directly execute the OK logic
+        dialogData.SubmitOnEnterCommand = new AsyncCommand(async (parameter, ct) =>
+        {
+            // Only trigger if valid
+            if (dialogData.IsValid)
+            {
+                resultTcs.TrySetResult(new AddWorktreeDialogResult
+                {
+                    BranchName = dialogData.GetEffectiveBranchName(),
+                    WorktreePath = dialogData.GetWorktreePath(),
+                    CreateNewBranch = dialogData.CreateNewBranch,
+                    BaseBranch = dialogData.CreateNewBranch ? dialogData.SelectedBranch : null,
+                    OpenAfterCreation = dialogData.OpenAfterCreation
+                });
+                // Cancel to close the dialog
+                await dialogCts.CancelAsync();
+            }
+        });
+
         // Show dialog using VS Extensibility
         var dialogControl = new AddWorktreeDialogControl(dialogData);
         
@@ -101,9 +120,14 @@ public class AddWorktreeDialog
         
         try
         {
+            // Use DialogOption.None to prevent VS from adding default buttons
+            // This should prevent Enter from auto-closing the dialog
             await _extensibility.Shell().ShowDialogAsync(
                 dialogControl,
                 "Add Worktree",
+                new Microsoft.VisualStudio.RpcContracts.Notifications.DialogOption(
+                    Microsoft.VisualStudio.RpcContracts.Notifications.DialogButton.None,
+                    Microsoft.VisualStudio.RpcContracts.Notifications.DialogResult.None),
                 linkedCts.Token);
         }
         catch (OperationCanceledException)

@@ -97,11 +97,13 @@
             <Button Content="Create"
                     Command="{Binding OkCommand}"
                     IsEnabled="{Binding IsValid}"
+                    IsDefault="True"
                     Padding="20,8"
                     Margin="0,0,8,0"
                     MinWidth="90"/>
             <Button Content="Cancel"
                     Command="{Binding CancelCommand}"
+                    IsCancel="True"
                     Padding="20,8"
                     MinWidth="90"/>
         </StackPanel>

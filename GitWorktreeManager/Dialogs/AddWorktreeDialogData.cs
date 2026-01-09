@@ -189,6 +189,12 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
     public IAsyncCommand? CancelCommand { get; set; }
 
     /// <summary>
+    /// Command to submit on Enter key press.
+    /// </summary>
+    [DataMember]
+    public IAsyncCommand? SubmitOnEnterCommand { get; set; }
+
+    /// <summary>
     /// Generates the worktree path based on branch name.
     /// </summary>
     public string GetWorktreePath()
