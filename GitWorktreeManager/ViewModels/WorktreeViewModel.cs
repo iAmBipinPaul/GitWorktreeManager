@@ -74,9 +74,15 @@ public class WorktreeViewModel : INotifyPropertyChanged
         });
         OpenInExplorerCommand = new AsyncCommand(async (param, ct) =>
         {
+            System.Diagnostics.Debug.WriteLine($"OpenInExplorerCommand param: {param?.GetType().Name ?? "null"}");
             if (param is WorktreeItemViewModel item)
             {
+                System.Diagnostics.Debug.WriteLine($"OpenInExplorerCommand path: {item.Path}");
                 await OpenInExplorerAsync(item, ct);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"OpenInExplorerCommand: param is not WorktreeItemViewModel");
             }
         });
         CopyPathCommand = new AsyncCommand(async (param, ct) =>
@@ -759,25 +765,44 @@ public class WorktreeViewModel : INotifyPropertyChanged
     /// </summary>
     private async Task OpenInExplorerAsync(WorktreeItemViewModel worktreeItem, CancellationToken cancellationToken)
     {
+        System.Diagnostics.Debug.WriteLine($"OpenInExplorerAsync called");
+        
         if (worktreeItem == null || string.IsNullOrEmpty(worktreeItem.Path))
         {
+            System.Diagnostics.Debug.WriteLine($"OpenInExplorerAsync: worktreeItem is null or path is empty");
             return;
         }
 
         try
         {
+            var path = worktreeItem.Path;
+            System.Diagnostics.Debug.WriteLine($"OpenInExplorerAsync: Opening path: {path}");
+            
+            // Ensure the path exists
+            if (!System.IO.Directory.Exists(path))
+            {
+                ErrorMessage = $"Directory does not exist: {path}";
+                System.Diagnostics.Debug.WriteLine($"OpenInExplorerAsync: Directory does not exist: {path}");
+                return;
+            }
+
             await Task.Run(() =>
             {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                // Open the folder using explorer.exe with the path as argument
+                var psi = new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = "explorer.exe",
-                    Arguments = $"\"{worktreeItem.Path}\"",
-                    UseShellExecute = true
-                });
+                    Arguments = $"\"{path}\"",
+                    UseShellExecute = false
+                };
+                System.Diagnostics.Process.Start(psi);
             }, cancellationToken);
+            
+            System.Diagnostics.Debug.WriteLine($"OpenInExplorerAsync: Process started successfully");
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"OpenInExplorerAsync: Exception: {ex.Message}");
             ErrorMessage = $"Failed to open Explorer: {ex.Message}";
         }
     }
@@ -794,7 +819,17 @@ public class WorktreeViewModel : INotifyPropertyChanged
 
         try
         {
-            System.Windows.Clipboard.SetText(worktreeItem.Path);
+            var path = worktreeItem.Path;
+            
+            // Use a thread with STA apartment state for clipboard access
+            var thread = new System.Threading.Thread(() =>
+            {
+                System.Windows.Clipboard.SetDataObject(path, true);
+            });
+            thread.SetApartmentState(System.Threading.ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+            
             SuccessMessage = "Path copied to clipboard!";
         }
         catch (Exception ex)
