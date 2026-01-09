@@ -17,14 +17,14 @@
     <ReleaseNotes>Initial release of Git Worktree Manager extension.</ReleaseNotes>
   </Metadata>
   <Installation>
-    <!-- Target Visual Studio 2022 version 17.9 and later (required for VisualStudio.Extensibility out-of-process model) -->
-    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.9,18.0)">
+    <!-- Target Visual Studio 2022 version 17.14 and later -->
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.14,18.0)">
       <ProductArchitecture>amd64</ProductArchitecture>
     </InstallationTarget>
-    <InstallationTarget Id="Microsoft.VisualStudio.Professional" Version="[17.9,18.0)">
+    <InstallationTarget Id="Microsoft.VisualStudio.Professional" Version="[17.14,18.0)">
       <ProductArchitecture>amd64</ProductArchitecture>
     </InstallationTarget>
-    <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.9,18.0)">
+    <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.14,18.0)">
       <ProductArchitecture>amd64</ProductArchitecture>
     </InstallationTarget>
   </Installation>
@@ -32,7 +32,7 @@
     <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.8,)" />
   </Dependencies>
   <Prerequisites>
-    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.9,18.0)" DisplayName="Visual Studio core editor" />
+    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.14,18.0)" DisplayName="Visual Studio core editor" />
   </Prerequisites>
   <Assets>
     <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
