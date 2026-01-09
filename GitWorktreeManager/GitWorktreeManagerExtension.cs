@@ -28,7 +28,7 @@ public class GitWorktreeManagerExtension : Extension
     public override ExtensionConfiguration ExtensionConfiguration => new()
     {
         Metadata = new(
-            id: "GitWorktreeManager.e7f8a9b0-c1d2-4e3f-5a6b-7c8d9e0f1a2b",
+            id: "IAmBipinPaul.GitWorktreeManager.e7f8a9b0-c1d2-4e3f-5a6b-7c8d9e0f1a2b",
             version: ExtensionAssemblyVersion,
             publisherName: "Bipin Paul",
             displayName: "Git Worktree Manager",
