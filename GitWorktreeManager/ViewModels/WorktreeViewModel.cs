@@ -25,6 +25,8 @@ public class WorktreeViewModel : INotifyPropertyChanged
     private string? _errorMessage;
     private string? _repositoryPath;
     private string? _successMessage;
+    private string? _searchFilter;
+    private ObservableCollection<WorktreeItemViewModel> _filteredWorktrees;
 
     /// <summary>
     /// Initializes a new instance of the WorktreeViewModel.
@@ -41,6 +43,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
         _extensibility = extensibility;
         _notificationService = notificationService;
         Worktrees = new ObservableCollection<WorktreeItemViewModel>();
+        _filteredWorktrees = new ObservableCollection<WorktreeItemViewModel>();
         
         // Initialize commands
         RefreshCommand = new AsyncCommand(async (_, ct) => await RefreshAsync(ct));
@@ -69,6 +72,30 @@ public class WorktreeViewModel : INotifyPropertyChanged
                 await OpenInNewWindowAsync(item, ct);
             }
         });
+        OpenInExplorerCommand = new AsyncCommand(async (param, ct) =>
+        {
+            if (param is WorktreeItemViewModel item)
+            {
+                await OpenInExplorerAsync(item, ct);
+            }
+        });
+        CopyPathCommand = new AsyncCommand(async (param, ct) =>
+        {
+            if (param is WorktreeItemViewModel item)
+            {
+                await CopyPathToClipboardAsync(item, ct);
+            }
+        });
+        DismissErrorCommand = new AsyncCommand((_, ct) =>
+        {
+            ErrorMessage = null;
+            return Task.CompletedTask;
+        });
+        DismissSuccessCommand = new AsyncCommand((_, ct) =>
+        {
+            SuccessMessage = null;
+            return Task.CompletedTask;
+        });
     }
 
     /// <summary>
@@ -94,6 +121,30 @@ public class WorktreeViewModel : INotifyPropertyChanged
     /// </summary>
     [DataMember]
     public IAsyncCommand OpenInNewWindowCommand { get; }
+
+    /// <summary>
+    /// Command to open a worktree folder in Windows Explorer.
+    /// </summary>
+    [DataMember]
+    public IAsyncCommand OpenInExplorerCommand { get; }
+
+    /// <summary>
+    /// Command to copy a worktree path to clipboard.
+    /// </summary>
+    [DataMember]
+    public IAsyncCommand CopyPathCommand { get; }
+
+    /// <summary>
+    /// Command to dismiss the error message.
+    /// </summary>
+    [DataMember]
+    public IAsyncCommand DismissErrorCommand { get; }
+
+    /// <summary>
+    /// Command to dismiss the success message.
+    /// </summary>
+    [DataMember]
+    public IAsyncCommand DismissSuccessCommand { get; }
 
     /// <summary>
     /// Handles the Add Worktree command - shows dialog and creates worktree.
@@ -267,11 +318,51 @@ public class WorktreeViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// The search filter text for filtering worktrees.
+    /// </summary>
+    [DataMember]
+    public string? SearchFilter
+    {
+        get => _searchFilter;
+        set
+        {
+            if (SetProperty(ref _searchFilter, value))
+            {
+                UpdateFilteredWorktrees();
+            }
+        }
+    }
+
+    /// <summary>
+    /// The filtered collection of worktrees based on search filter.
+    /// </summary>
+    [DataMember]
+    public ObservableCollection<WorktreeItemViewModel> FilteredWorktrees
+    {
+        get => _filteredWorktrees;
+        private set => SetProperty(ref _filteredWorktrees, value);
+    }
+
+    /// <summary>
     /// Indicates whether the "No Repository" message should be shown.
     /// True when not loading and no repository is detected.
     /// </summary>
     [DataMember]
     public bool ShowNoRepositoryMessage => !IsLoading && !HasRepository;
+
+    /// <summary>
+    /// Indicates whether the "No Worktrees" message should be shown.
+    /// True when has repository, not loading, and no filtered worktrees.
+    /// </summary>
+    [DataMember]
+    public bool ShowNoWorktreesMessage => HasRepository && !IsLoading && FilteredWorktrees.Count == 0;
+
+    /// <summary>
+    /// Indicates whether the worktree list should be shown.
+    /// True when has repository and has filtered worktrees.
+    /// </summary>
+    [DataMember]
+    public bool ShowWorktreeList => HasRepository && FilteredWorktrees.Count > 0;
 
     /// <summary>
     /// Indicates whether there is an error message to display.
@@ -319,7 +410,10 @@ public class WorktreeViewModel : INotifyPropertyChanged
         {
             HasRepository = false;
             Worktrees.Clear();
+            FilteredWorktrees.Clear();
             ErrorMessage = null;
+            OnPropertyChanged(nameof(ShowNoWorktreesMessage));
+            OnPropertyChanged(nameof(ShowWorktreeList));
             return;
         }
 
@@ -340,6 +434,8 @@ public class WorktreeViewModel : INotifyPropertyChanged
                     var viewModel = MapToViewModel(worktree);
                     Worktrees.Add(viewModel);
                 }
+                
+                UpdateFilteredWorktrees();
             }
             else
             {
@@ -347,6 +443,9 @@ public class WorktreeViewModel : INotifyPropertyChanged
                 var errorMsg = result.ErrorMessage ?? "Failed to retrieve worktrees";
                 ErrorMessage = errorMsg;
                 Worktrees.Clear();
+                FilteredWorktrees.Clear();
+                OnPropertyChanged(nameof(ShowNoWorktreesMessage));
+                OnPropertyChanged(nameof(ShowWorktreeList));
                 
                 // Show notification for git errors (includes stderr)
                 await ShowErrorNotificationAsync("Failed to retrieve worktrees", result.ErrorMessage, cancellationToken);
@@ -358,6 +457,9 @@ public class WorktreeViewModel : INotifyPropertyChanged
             var errorMsg = $"Error refreshing worktrees: {ex.Message}";
             ErrorMessage = errorMsg;
             Worktrees.Clear();
+            FilteredWorktrees.Clear();
+            OnPropertyChanged(nameof(ShowNoWorktreesMessage));
+            OnPropertyChanged(nameof(ShowWorktreeList));
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
         }
         finally
@@ -653,11 +755,86 @@ public class WorktreeViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// Opens a worktree folder in Windows Explorer.
+    /// </summary>
+    private async Task OpenInExplorerAsync(WorktreeItemViewModel worktreeItem, CancellationToken cancellationToken)
+    {
+        if (worktreeItem == null || string.IsNullOrEmpty(worktreeItem.Path))
+        {
+            return;
+        }
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"\"{worktreeItem.Path}\"",
+                    UseShellExecute = true
+                });
+            }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to open Explorer: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Copies a worktree path to the clipboard.
+    /// </summary>
+    private Task CopyPathToClipboardAsync(WorktreeItemViewModel worktreeItem, CancellationToken cancellationToken)
+    {
+        if (worktreeItem == null || string.IsNullOrEmpty(worktreeItem.Path))
+        {
+            return Task.CompletedTask;
+        }
+
+        try
+        {
+            System.Windows.Clipboard.SetText(worktreeItem.Path);
+            SuccessMessage = "Path copied to clipboard!";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to copy path: {ex.Message}";
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Updates the filtered worktrees collection based on the search filter.
+    /// </summary>
+    private void UpdateFilteredWorktrees()
+    {
+        FilteredWorktrees.Clear();
+
+        var filter = SearchFilter?.Trim() ?? string.Empty;
+        
+        foreach (var worktree in Worktrees)
+        {
+            if (string.IsNullOrEmpty(filter) ||
+                worktree.DisplayPath.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                worktree.BranchName.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                worktree.Path.Contains(filter, StringComparison.OrdinalIgnoreCase))
+            {
+                FilteredWorktrees.Add(worktree);
+            }
+        }
+
+        OnPropertyChanged(nameof(ShowNoWorktreesMessage));
+        OnPropertyChanged(nameof(ShowWorktreeList));
+    }
+
+    /// <summary>
     /// Maps a Worktree model to a WorktreeItemViewModel.
     /// </summary>
     /// <param name="worktree">The worktree model to map.</param>
     /// <returns>The mapped view model.</returns>
-    private static WorktreeItemViewModel MapToViewModel(GitWorktreeManager.Models.Worktree worktree)
+    private WorktreeItemViewModel MapToViewModel(GitWorktreeManager.Models.Worktree worktree)
     {
         // Create a display-friendly path (just the folder name)
         var displayPath = System.IO.Path.GetFileName(worktree.Path.TrimEnd(
@@ -682,7 +859,8 @@ public class WorktreeViewModel : INotifyPropertyChanged
             HeadCommit = shortCommit,
             IsMainWorktree = worktree.IsMainWorktree,
             IsLocked = worktree.IsLocked,
-            IsPrunable = worktree.IsPrunable
+            IsPrunable = worktree.IsPrunable,
+            IsCurrentWorktree = IsCurrentWorktree(worktree.Path)
         };
     }
 

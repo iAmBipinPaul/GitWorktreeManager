@@ -52,9 +52,15 @@ public class WorktreeItemViewModel
     public bool IsPrunable { get; init; }
 
     /// <summary>
-    /// Indicates whether this worktree can be removed.
-    /// Main worktrees cannot be removed.
+    /// Indicates whether this is the currently open worktree in VS.
     /// </summary>
     [DataMember]
-    public bool CanRemove => !IsMainWorktree;
+    public bool IsCurrentWorktree { get; set; }
+
+    /// <summary>
+    /// Indicates whether this worktree can be removed.
+    /// Main worktrees and current worktree cannot be removed.
+    /// </summary>
+    [DataMember]
+    public bool CanRemove => !IsMainWorktree && !IsCurrentWorktree;
 }
