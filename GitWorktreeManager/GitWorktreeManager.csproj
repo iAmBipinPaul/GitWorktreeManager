@@ -27,6 +27,7 @@
   <ItemGroup>
     <EmbeddedResource Include="ToolWindows\WorktreeToolWindowControl.xaml" LogicalName="GitWorktreeManager.ToolWindows.WorktreeToolWindowControl.xaml" />
     <EmbeddedResource Include="Dialogs\AddWorktreeDialogControl.xaml" LogicalName="GitWorktreeManager.Dialogs.AddWorktreeDialogControl.xaml" />
+    <EmbeddedResource Include="Dialogs\DeleteConfirmationDialogControl.xaml" LogicalName="GitWorktreeManager.Dialogs.DeleteConfirmationDialogControl.xaml" />
   </ItemGroup>
   
   <!-- Exclude XAML from Page compilation (not WPF) -->

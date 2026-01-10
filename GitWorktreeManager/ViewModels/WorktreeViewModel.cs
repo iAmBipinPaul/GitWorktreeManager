@@ -604,8 +604,15 @@ public class WorktreeViewModel : INotifyPropertyChanged
             return (false, errorMsg);
         }
 
-        // Show confirmation dialog
-        if (_extensibility != null)
+        if (_extensibility == null)
+        {
+            var errorMsg = "Cannot remove worktree: extensibility service not available for confirmation.";
+            ErrorMessage = errorMsg;
+            return (false, errorMsg);
+        }
+
+        // Show confirmation dialog (skip if forcing, as user just confirmed via the Force dialog)
+        if (_extensibility != null && !force)
         {
             var confirmMessage = $"Are you sure you want to remove the worktree '{worktreeItem.DisplayPath}'?\n\nBranch: {worktreeItem.BranchName}\nPath: {worktreeItem.Path}\n\nThis will delete the worktree folder and its contents.";
             
@@ -665,9 +672,44 @@ public class WorktreeViewModel : INotifyPropertyChanged
                         errorMessage = "Cannot remove worktree - files may be in use. Please close any open files or applications using this worktree.";
                     }
                 }
-                else if (errorMessage.Contains("modified or untracked files"))
+                else if (errorMessage.Contains("modified or untracked files") || 
+                         errorMessage.Contains("contains modified or untracked files") ||
+                         errorMessage.Contains("forcing it"))
                 {
-                    errorMessage = "Worktree has uncommitted changes. Commit or stash your changes first.";
+                    // If we haven't already tried to force remove, ask the user if they want to
+                    if (!force && _extensibility != null)
+                    {
+                        var dialog = new DeleteConfirmationDialog(_extensibility);
+                        var confirmed = await dialog.ShowAsync(
+                            worktreeItem.DisplayPath, // User must type this name
+                            worktreeItem.Path, 
+                            cancellationToken);
+
+                        if (confirmed)
+                        {
+                            // Retry with force = true
+                            var forceRemoveResult = await RemoveWorktreeAsync(worktreeItem, force: true, cancellationToken);
+                            
+                            // If successful, return true (recursive call invalidates this frame's return but we return its result)
+                            if (forceRemoveResult.Success)
+                            {
+                                return (true, null);
+                            }
+                            else
+                            {
+                                // If force remove failed, return that error
+                                return forceRemoveResult;
+                            }
+                        }
+                        else
+                        {
+                            // User cancelled the force remove dialog - do nothing, just return false
+                            // Don't show an error message since this was a user choice
+                            return (false, null);
+                        }
+                    }
+                    
+                    errorMessage = "Worktree has uncommitted changes. Commit or stash your changes, or force remove using the dialog.";
                 }
                 
                 ErrorMessage = errorMessage;
