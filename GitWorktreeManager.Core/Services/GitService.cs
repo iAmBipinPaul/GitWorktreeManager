@@ -367,6 +367,92 @@ public class GitService : IGitService
         }
     }
 
+    /// <inheritdoc />
+    public async Task<WorktreeStatus> GetWorktreeStatusAsync(string path, string branch, CancellationToken ct)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(path) || !Directory.Exists(path)) 
+                return new WorktreeStatus(0, 0, 0, 0);
+
+            // 1. Check modifications and untracked files
+            // Use a shorter timeout for status (e.g., 10s) as we don't want to hang the UI enrichment
+            using var statusCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            statusCts.CancelAfter(10000); 
+
+            // --porcelain=v1 is stable. 
+            // -uno (no untracked) is fast, but user specifically wants untracked.
+            // Using -unormal is usually faster than -uall.
+            var statusRes = await ExecuteGitCommandAsync(path, "status --porcelain=v1 -unormal", statusCts.Token);
+            
+            int modified = 0;
+            int untracked = 0;
+
+            if (statusRes.Success && !string.IsNullOrWhiteSpace(statusRes.Output))
+            {
+                var lines = statusRes.Output.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var line in lines)
+                {
+                    if (line.Length < 3) continue;
+                    
+                    var status = line.Substring(0, 2);
+                    if (status == "??")
+                    {
+                        untracked++;
+                    }
+                    else
+                    {
+                        modified++;
+                    }
+                }
+            }
+
+            // 2. Check Ahead/Behind (Incoming/Outgoing)
+            int ahead = 0;
+            int behind = 0;
+
+            try 
+            {
+                // Check if we have an upstream. Use a very short timeout.
+                using var upstreamCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                upstreamCts.CancelAfter(5000);
+                
+                var upstreamRes = await ExecuteGitCommandAsync(path, "rev-parse --abbrev-ref --symbolic-full-name @{u}", upstreamCts.Token);
+
+                if (upstreamRes.Success && !string.IsNullOrWhiteSpace(upstreamRes.Output))
+                {
+                    // Get ahead/behind counts
+                    var countRes = await ExecuteGitCommandAsync(path, "rev-list --left-right --count HEAD...@{u}", upstreamCts.Token);
+                    if (countRes.Success && !string.IsNullOrWhiteSpace(countRes.Output))
+                    {
+                        var parts = countRes.Output.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (parts.Length >= 2)
+                        {
+                            if (int.TryParse(parts[0], out int canForward)) ahead = canForward;
+                            if (int.TryParse(parts[1], out int canPull)) behind = canPull;
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // If upstream check fails, it's not critical, just show as synced
+                _logger?.LogWarning($"Failed to check upstream for {path}. Defaulting to 0/0.");
+            }
+
+            return new WorktreeStatus(modified, untracked, behind, ahead);
+        }
+        catch (OperationCanceledException)
+        {
+            return new WorktreeStatus(0, 0, 0, 0);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogException(ex, $"Failed to get status for {path}");
+            return new WorktreeStatus(0, 0, 0, 0);
+        }
+    }
+
     /// <summary>
     /// Attempts to kill a process safely.
     /// </summary>

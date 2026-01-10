@@ -2,6 +2,8 @@ namespace GitWorktreeManager.Services;
 
 using GitWorktreeManager.Models;
 
+public record WorktreeStatus(int ModifiedCount, int UntrackedCount, int Incoming, int Outgoing);
+
 /// <summary>
 /// Service interface for executing Git worktree commands.
 /// </summary>
@@ -76,4 +78,14 @@ public interface IGitService
     Task<GitCommandResult<IReadOnlyList<string>>> GetBranchesAsync(
         string repositoryPath,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the status of a worktree (changes, ahead/behind counts).
+    /// </summary>
+    /// <param name="worktreePath">The path to the worktree.</param>
+    /// <param name="branchName">The branch name.</param>
+    /// <param name="cancellationToken">Cancellation token for the operation.</param>
+    /// <returns>The status of the worktree.</returns>
+    Task<WorktreeStatus> GetWorktreeStatusAsync(string worktreePath, string branchName, CancellationToken cancellationToken = default);
 }
+

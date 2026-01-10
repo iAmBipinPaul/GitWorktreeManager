@@ -27,6 +27,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
     private string? _successMessage;
     private string? _searchFilter;
     private ObservableCollection<WorktreeItemViewModel> _filteredWorktrees;
+    private CancellationTokenSource? _enrichmentCts;
 
     /// <summary>
     /// Initializes a new instance of the WorktreeViewModel.
@@ -406,6 +407,12 @@ public class WorktreeViewModel : INotifyPropertyChanged
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
+        // Cancel any previous enrichment
+        if (_enrichmentCts != null) await _enrichmentCts.CancelAsync();
+        _enrichmentCts = new CancellationTokenSource();
+        // Link with the passed token if needed, but usually enrichment can run independently until refresh
+        var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _enrichmentCts.Token).Token;
+
         // Don't refresh if Git is not installed
         if (IsGitNotInstalled)
         {
@@ -428,6 +435,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
 
         try
         {
+            // PHASE 1: Fast load
             var result = await _gitService.GetWorktreesAsync(RepositoryPath, cancellationToken);
 
             if (result.Success && result.Data != null)
@@ -438,10 +446,17 @@ public class WorktreeViewModel : INotifyPropertyChanged
                 foreach (var worktree in result.Data)
                 {
                     var viewModel = MapToViewModel(worktree);
+                    // Initialize new properties
+                    viewModel.IsLoadingStatus = true; 
+                    viewModel.StatusSummary = "Loading status...";
                     Worktrees.Add(viewModel);
                 }
                 
                 UpdateFilteredWorktrees();
+
+                // PHASE 2: Background Enrichment
+                // Fire and forget (monitored by _enrichmentCts)
+                _ = EnrichWorktreesAsync(Worktrees.ToList(), _enrichmentCts.Token);
             }
             else
             {
@@ -456,6 +471,10 @@ public class WorktreeViewModel : INotifyPropertyChanged
                 // Show notification for git errors (includes stderr)
                 await ShowErrorNotificationAsync("Failed to retrieve worktrees", result.ErrorMessage, cancellationToken);
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // Ignore cancellation
         }
         catch (Exception ex)
         {
@@ -472,6 +491,73 @@ public class WorktreeViewModel : INotifyPropertyChanged
         {
             IsLoading = false;
         }
+    }
+
+    private async Task EnrichWorktreesAsync(List<WorktreeItemViewModel> items, CancellationToken ct)
+    {
+        try
+        {
+            // Use Parallel.ForEachAsync to limit concurrency to 4
+            var options = new ParallelOptions 
+            { 
+                MaxDegreeOfParallelism = 4, 
+                CancellationToken = ct 
+            };
+
+            await Parallel.ForEachAsync(items, options, async (item, token) =>
+            {
+                // Skip if path is invalid
+                if (string.IsNullOrEmpty(item.Path) || !Directory.Exists(item.Path))
+                {
+                    item.IsLoadingStatus = false;
+                    item.StatusSummary = "Invalid path";
+                    return;
+                }
+
+                try 
+                {
+                    var status = await _gitService.GetWorktreeStatusAsync(item.Path, item.BranchName, token);
+                    
+                    // Update properties on the view model
+                    item.UncommittedChangesCount = status.ModifiedCount;
+                    item.UntrackedChangesCount = status.UntrackedCount;
+                    item.HasUncommittedChanges = status.ModifiedCount > 0;
+                    
+                    item.IncomingCommits = status.Incoming;
+                    item.OutgoingCommits = status.Outgoing;
+                    item.StatusSummary = FormatStatusSummary(status);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Ignore
+                }
+                catch
+                {
+                    item.StatusSummary = "Failed to load status";
+                }
+                finally
+                {
+                    item.IsLoadingStatus = false;
+                }
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // Ignore cancellation
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Enrichment failed: {ex}");
+        }
+    }
+
+    private string FormatStatusSummary(WorktreeStatus status)
+    {
+        var parts = new List<string>();
+        if (status.Incoming > 0) parts.Add($"{status.Incoming} behind");
+        if (status.Outgoing > 0) parts.Add($"{status.Outgoing} ahead");
+        
+        return parts.Count > 0 ? string.Join(", ", parts) : "Synced";
     }
 
     /// <summary>
