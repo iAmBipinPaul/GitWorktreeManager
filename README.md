@@ -67,13 +67,6 @@ Each worktree card provides quick action buttons:
 
 ![Error Handling](docs/screenshots/Error.png)
 
-## Installation
-
-1. Download the latest `.vsix` file from [Releases](https://github.com/AmanPriyanshu/GitWorktreeManager/releases)
-2. Double-click the `.vsix` file to install
-3. Restart Visual Studio
-
-Or install from the Visual Studio Marketplace (coming soon).
 
 ## Requirements
 
@@ -94,7 +87,7 @@ Contributions are welcome! Here's how you can help:
 
 ```bash
 # Clone the repository
-git clone https://github.com/AmanPriyanshu/GitWorktreeManager.git
+git clone https://github.com/iAmBipinPaul/GitWorktreeManager.git
 
 # Open in Visual Studio
 start GitWorktreeManager.sln
@@ -114,7 +107,7 @@ dotnet test
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](GitWorktreeManager/LICENSE.txt) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
