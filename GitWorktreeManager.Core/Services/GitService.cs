@@ -366,7 +366,7 @@ public class GitService : IGitService
         {
             if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
             {
-                return new WorktreeStatus(0, 0, 0, 0);
+                return new WorktreeStatus(0, 0, 0, 0, false);
             }
 
             // 1. Check modifications and untracked files
@@ -408,6 +408,7 @@ public class GitService : IGitService
             // 2. Check Ahead/Behind (Incoming/Outgoing)
             int ahead = 0;
             int behind = 0;
+            bool hasUpstream = false;
 
             try
             {
@@ -420,6 +421,9 @@ public class GitService : IGitService
 
                 if (upstreamRes.Success && !string.IsNullOrWhiteSpace(upstreamRes.Output))
                 {
+                    // We have an upstream tracking branch
+                    hasUpstream = true;
+                    
                     // Get ahead/behind counts
                     GitProcessResult countRes = await ExecuteGitCommandAsync(path,
                         "rev-list --left-right --count HEAD...@{u}", upstreamCts.Token);
@@ -441,23 +445,25 @@ public class GitService : IGitService
                         }
                     }
                 }
+                // If upstreamRes failed or output is empty, hasUpstream remains false (local-only branch)
             }
             catch (Exception)
             {
-                // If upstream check fails, it's not critical, just show as synced
-                _logger?.LogWarning($"Failed to check upstream for {path}. Defaulting to 0/0.");
+                // If upstream check fails, it's a local-only branch
+                _logger?.LogWarning($"No upstream found for {path}. Branch is local-only.");
+                hasUpstream = false;
             }
 
-            return new WorktreeStatus(modified, untracked, behind, ahead);
+            return new WorktreeStatus(modified, untracked, behind, ahead, hasUpstream);
         }
         catch (OperationCanceledException)
         {
-            return new WorktreeStatus(0, 0, 0, 0);
+            return new WorktreeStatus(0, 0, 0, 0, false);
         }
         catch (Exception ex)
         {
             _logger?.LogException(ex, $"Failed to get status for {path}");
-            return new WorktreeStatus(0, 0, 0, 0);
+            return new WorktreeStatus(0, 0, 0, 0, false);
         }
     }
 

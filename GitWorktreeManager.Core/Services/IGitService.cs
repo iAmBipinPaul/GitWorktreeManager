@@ -2,7 +2,7 @@ namespace GitWorktreeManager.Services;
 
 using Models;
 
-public record WorktreeStatus(int ModifiedCount, int UntrackedCount, int Incoming, int Outgoing);
+public record WorktreeStatus(int ModifiedCount, int UntrackedCount, int Incoming, int Outgoing, bool HasUpstream = true);
 
 /// <summary>
 /// Service interface for executing Git worktree commands.

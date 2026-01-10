@@ -559,6 +559,12 @@ public class WorktreeViewModel : INotifyPropertyChanged
 
     private string FormatStatusSummary(WorktreeStatus status)
     {
+        // If no upstream tracking branch, show "Local only"
+        if (!status.HasUpstream)
+        {
+            return "Local only";
+        }
+        
         var parts = new List<string>();
         if (status.Incoming > 0)
         {

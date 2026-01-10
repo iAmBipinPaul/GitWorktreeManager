@@ -4,12 +4,11 @@
               xmlns:styles="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
               xmlns:colors="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0">
 
-    <Grid x:Name="RootGrid">
+    <Grid x:Name="RootGrid" Background="{DynamicResource {x:Static styles:VsBrushes.ToolWindowBackgroundKey}}">
         <Grid.Resources>
             <BooleanToVisibilityConverter x:Key="BoolToVis" />
             <Style TargetType="Button" BasedOn="{StaticResource {x:Static styles:VsResourceKeys.ButtonStyleKey}}" />
-            <Style TargetType="ListView"
-                   BasedOn="{StaticResource {x:Static styles:VsResourceKeys.ThemedDialogListViewStyleKey}}" />
+            <Style TargetType="ListView" BasedOn="{StaticResource {x:Static styles:VsResourceKeys.ThemedDialogListViewStyleKey}}" />
             <Style TargetType="TextBox" BasedOn="{StaticResource {x:Static styles:VsResourceKeys.TextBoxStyleKey}}" />
             <Style TargetType="TextBlock">
                 <Setter Property="Foreground" Value="{DynamicResource {x:Static styles:VsBrushes.WindowTextKey}}" />
@@ -90,7 +89,7 @@
 
         <!-- Content -->
         <Grid Grid.Row="2"
-              Background="{DynamicResource {x:Static colors:EnvironmentColors.ToolWindowBackgroundBrushKey}}">
+              Background="{DynamicResource {x:Static styles:VsBrushes.ToolWindowBackgroundKey}}">
 
             <!-- Empty State - No Repository -->
             <Border Visibility="{Binding ShowNoRepositoryMessage, Converter={StaticResource BoolToVis}}"
@@ -135,7 +134,24 @@
             <ListView ItemsSource="{Binding FilteredWorktrees}"
                       Margin="8"
                       HorizontalContentAlignment="Stretch"
+                      Background="Transparent"
+                      BorderThickness="0"
                       Visibility="{Binding ShowWorktreeList, Converter={StaticResource BoolToVis}}">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Margin" Value="0" />
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListViewItem">
+                                    <ContentPresenter />
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListView.ItemContainerStyle>
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <!-- Card-style item -->
@@ -148,11 +164,9 @@
                             <Grid>
                                 <Grid.Resources>
                                     <BooleanToVisibilityConverter x:Key="BoolToVis" />
-                                    <Style TargetType="Button"
-                                           BasedOn="{StaticResource {x:Static styles:VsResourceKeys.ButtonStyleKey}}" />
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Static styles:VsResourceKeys.ButtonStyleKey}}" />
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="Foreground"
-                                                Value="{DynamicResource {x:Static styles:VsBrushes.WindowTextKey}}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource {x:Static styles:VsBrushes.WindowTextKey}}" />
                                     </Style>
                                 </Grid.Resources>
                                 <Grid.RowDefinitions>
@@ -270,7 +284,7 @@
                                                            Margin="2,0,0,0" />
                                             </StackPanel>
 
-                                            <!-- Ahead/Behind/Synced summary -->
+                                            <!-- Ahead/Behind/Synced/Local only summary -->
                                             <StackPanel Orientation="Horizontal">
                                                 <vs:Image Source="KnownMonikers.Sync" Width="12" Height="12"
                                                           Margin="0,0,4,0">
@@ -282,6 +296,11 @@
                                                                     <Setter Property="Source"
                                                                             Value="KnownMonikers.StatusOK" />
                                                                 </DataTrigger>
+                                                                <DataTrigger Binding="{Binding StatusSummary}"
+                                                                             Value="Local only">
+                                                                    <Setter Property="Source"
+                                                                            Value="KnownMonikers.LocalBranch" />
+                                                                </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
                                                     </vs:Image.Style>
@@ -290,11 +309,17 @@
                                                            VerticalAlignment="Center">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="{DynamicResource {x:Static styles:VsBrushes.WindowTextKey}}" />
                                                             <Setter Property="Opacity" Value="0.8" />
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding StatusSummary}"
                                                                              Value="Synced">
                                                                     <Setter Property="Foreground" Value="#4EC9B0" />
+                                                                    <Setter Property="Opacity" Value="1.0" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding StatusSummary}"
+                                                                             Value="Local only">
+                                                                    <Setter Property="Foreground" Value="#CE9178" />
                                                                     <Setter Property="Opacity" Value="1.0" />
                                                                 </DataTrigger>
                                                                 <DataTrigger Binding="{Binding StatusSummary}"

@@ -17,12 +17,13 @@ public class WorktreeToolWindow : ToolWindow
 {
     private readonly WorktreeToolWindowControl _control;
     private readonly WorktreeViewModel _viewModel;
-    private readonly SolutionService _solutionService;
+    private readonly SolutionService? _solutionService;
     private readonly ILoggerService _loggerService;
-    private readonly IGitService _gitService;
-    private readonly INotificationService _notificationService;
+    private readonly IGitService? _gitService;
+    private readonly INotificationService? _notificationService;
     private bool _isDisposed;
     private bool _gitInstalled = true;
+    private bool _initializationFailed;
 
     /// <summary>
     /// Initializes a new instance of the WorktreeToolWindow.
@@ -33,22 +34,41 @@ public class WorktreeToolWindow : ToolWindow
     {
         Title = "Worktree Manager";
 
-        // Create services
+        // Create logger first - this should never fail
         _loggerService = new ActivityLogService();
-        _gitService = new GitService(_loggerService);
-        _solutionService = new SolutionService(extensibility, _loggerService);
-        _notificationService = new NotificationService(extensibility, _loggerService);
 
-        // Create ViewModel with notification service
-        _viewModel = new WorktreeViewModel(_gitService, extensibility, _notificationService);
+        try
+        {
+            // Create services with proper error handling
+            _gitService = new GitService(_loggerService);
+            _solutionService = new SolutionService(extensibility, _loggerService);
+            _notificationService = new NotificationService(extensibility, _loggerService);
 
-        // Subscribe to solution change events
-        _solutionService.SolutionChanged += OnSolutionChanged;
+            // Create ViewModel with notification service
+            _viewModel = new WorktreeViewModel(_gitService, extensibility, _notificationService);
 
+            // Subscribe to solution change events
+            _solutionService.SolutionChanged += OnSolutionChanged;
+        }
+        catch (Exception ex)
+        {
+            _loggerService.LogException(ex, "Failed to initialize WorktreeToolWindow services");
+            _initializationFailed = true;
+
+            // Create a minimal ViewModel that shows the error state
+            _gitService ??= new GitService(_loggerService);
+            _viewModel = new WorktreeViewModel(_gitService, extensibility, null);
+            _viewModel.SetGitNotInstalledError();
+        }
+
+        // Always create the control - this must never be null
         _control = new WorktreeToolWindowControl(_viewModel);
 
-        // Initialize solution service asynchronously
-        _ = InitializeSolutionServiceAsync();
+        // Initialize solution service asynchronously (fire and forget with error handling)
+        if (!_initializationFailed)
+        {
+            _ = InitializeSolutionServiceAsync();
+        }
     }
 
     /// <summary>
@@ -207,8 +227,17 @@ public class WorktreeToolWindow : ToolWindow
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The Remote UI control for the tool window.</returns>
-    public override Task<IRemoteUserControl> GetContentAsync(CancellationToken cancellationToken) =>
-        Task.FromResult<IRemoteUserControl>(_control);
+    public override Task<IRemoteUserControl> GetContentAsync(CancellationToken cancellationToken)
+    {
+        // Defensive null check - _control should never be null after constructor completes
+        if (_control == null)
+        {
+            _loggerService.LogError("GetContentAsync called but _control is null - this should never happen");
+            throw new InvalidOperationException("Tool window control was not properly initialized");
+        }
+
+        return Task.FromResult<IRemoteUserControl>(_control);
+    }
 
     /// <summary>
     /// Disposes of the tool window resources.
@@ -226,8 +255,11 @@ public class WorktreeToolWindow : ToolWindow
         {
             _loggerService.LogInformation("Disposing WorktreeToolWindow");
 
-            _solutionService.SolutionChanged -= OnSolutionChanged;
-            _solutionService.Dispose();
+            if (_solutionService != null)
+            {
+                _solutionService.SolutionChanged -= OnSolutionChanged;
+                _solutionService.Dispose();
+            }
         }
 
         base.Dispose(disposing);
