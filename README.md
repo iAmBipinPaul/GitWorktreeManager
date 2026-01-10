@@ -24,6 +24,14 @@ See all your Git worktrees in a clean, card-based layout. Each worktree displays
 - Latest commit SHA
 - Status badges (CURRENT, MAIN, LOCKED)
 
+### 📊 Live Git Status (New)
+
+Get real-time insights into each worktree without switching branches:
+- **Modified files**: Count of changed and staged files.
+- **Untracked files**: Count of new files not yet tracked by Git.
+- **Sync Status**: See exactly how many commits you are ahead or behind from upstream.
+- **Non-blocking**: Status is fetched asynchronously in the background so the UI stays snappy.
+
 ![Worktree List](docs/screenshots/List.png)
 
 ### ➕ Create New Worktrees
@@ -54,16 +62,20 @@ Each worktree card provides quick action buttons:
 | **Open in VS** | Opens the worktree in a new Visual Studio instance |
 | **Explorer** | Opens the worktree folder in Windows File Explorer |
 | **Copy Path** | Copies the full path to clipboard |
-| **Remove** | Removes the worktree (with safety checks) |
+| **Remove** | Removes the worktree (includes **Force Remove** for dirty worktrees) |
 
 ![Quick Actions](docs/screenshots/QuickAction.png)
 
 ### 🛡️ Safety Features
 
-- Cannot remove the currently open worktree
-- Cannot remove the main worktree
-- Clear error messages for locked files or uncommitted changes
-- Handles partial failures gracefully (e.g., git reference removed but folder locked)
+- **Force Remove**: Safely remove worktrees even with uncommitted changes using a confirmation safety dialog.
+
+![Force Remove](docs/screenshots/ForceRemove.png)
+
+- **Protected Worktrees**: Cannot remove the currently open worktree or the main worktree.
+- **Locked State**: Detects and displays locked worktrees with reasons.
+- **Smart Enrichment**: Intelligent status fetching with timeouts to prevent hanging on large repositories.
+- **Error Handling**: Handles partial failures gracefully (e.g., git reference removed but folder locked).
 
 ![Error Handling](docs/screenshots/Error.png)
 
