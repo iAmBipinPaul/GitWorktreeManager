@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="IAmBipinPaul.GitWorktreeManager.e7f8a9b0-c1d2-4e3f-5a6b-7c8d9e0f1a2b" Version="1.0.3" Language="en-US" Publisher="Bipin Paul" />
+    <Identity Id="IAmBipinPaul.GitWorktreeManager.e7f8a9b0-c1d2-4e3f-5a6b-7c8d9e0f1a2b" Version="1.0.4" Language="en-US" Publisher="Bipin Paul" />
     <DisplayName>Git Worktree Manager</DisplayName>
     <Description xml:space="preserve">Manage Git worktrees from within Visual Studio. List, add, remove, and open Git worktrees directly from the IDE without leaving Visual Studio. Features include:
 • View all worktrees for your repository in a dedicated tool window
@@ -14,7 +14,14 @@
     <Icon>Resources\icon.png</Icon>
     <PreviewImage>Resources\preview.png</PreviewImage>
     <Tags>git, worktree, source control, productivity, version control, branch management</Tags>
-    <ReleaseNotes>Initial release of Git Worktree Manager extension.</ReleaseNotes>
+    <ReleaseNotes>
+      1.0.4:
+      - Added improved safety dialog for Force Remove worktree operations.
+      - Fixed minor UI bugs.
+      
+      Initial release:
+      Initial release of Git Worktree Manager extension.
+    </ReleaseNotes>
   </Metadata>
   <Installation>
     <!-- Target Visual Studio 2022 version 17.14 and later -->
