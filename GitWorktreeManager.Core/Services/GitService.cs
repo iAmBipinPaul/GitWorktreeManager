@@ -2,7 +2,7 @@ namespace GitWorktreeManager.Services;
 
 using System.Diagnostics;
 using System.Text;
-using GitWorktreeManager.Models;
+using Models;
 
 /// <summary>
 /// Service for executing Git worktree commands using the Git CLI.
@@ -36,7 +36,7 @@ public class GitService : IGitService
     {
         _logger?.LogInformation($"Getting worktrees for repository: {repositoryPath}");
 
-        var result = await ExecuteGitCommandAsync(
+        GitProcessResult result = await ExecuteGitCommandAsync(
             repositoryPath,
             "worktree list --porcelain",
             cancellationToken);
@@ -49,7 +49,7 @@ public class GitService : IGitService
                 result.ExitCode);
         }
 
-        var worktrees = WorktreeParser.ParsePorcelainOutput(result.Output ?? string.Empty);
+        IReadOnlyList<Worktree> worktrees = WorktreeParser.ParsePorcelainOutput(result.Output ?? string.Empty);
         _logger?.LogInformation($"Found {worktrees.Count} worktree(s)");
         return GitCommandResult<IReadOnlyList<Worktree>>.Ok(worktrees);
     }
@@ -67,7 +67,7 @@ public class GitService : IGitService
         // With -b: git worktree add -b <new-branch> <path> [<base-branch>]
         // Without -b: git worktree add <path> <branch>
         string arguments;
-        
+
         if (createBranch)
         {
             // Create new branch based on another branch
@@ -86,9 +86,10 @@ public class GitService : IGitService
             arguments = $"worktree add \"{worktreePath}\" \"{branchName}\"";
         }
 
-        _logger?.LogInformation($"Adding worktree: path='{worktreePath}', branch='{branchName}', createBranch={createBranch}, baseBranch='{baseBranch}'");
+        _logger?.LogInformation(
+            $"Adding worktree: path='{worktreePath}', branch='{branchName}', createBranch={createBranch}, baseBranch='{baseBranch}'");
 
-        var result = await ExecuteGitCommandAsync(
+        GitProcessResult result = await ExecuteGitCommandAsync(
             repositoryPath,
             arguments,
             cancellationToken);
@@ -113,13 +114,13 @@ public class GitService : IGitService
         CancellationToken cancellationToken = default)
     {
         // Build command: git worktree remove [--force] <path>
-        var arguments = force
+        string arguments = force
             ? $"worktree remove --force \"{worktreePath}\""
             : $"worktree remove \"{worktreePath}\"";
 
         _logger?.LogInformation($"Removing worktree: path='{worktreePath}', force={force}");
 
-        var result = await ExecuteGitCommandAsync(
+        GitProcessResult result = await ExecuteGitCommandAsync(
             repositoryPath,
             arguments,
             cancellationToken);
@@ -143,7 +144,7 @@ public class GitService : IGitService
     {
         _logger?.LogInformation($"Getting repository root for path: {path}");
 
-        var result = await ExecuteGitCommandAsync(
+        GitProcessResult result = await ExecuteGitCommandAsync(
             path,
             "rev-parse --show-toplevel",
             cancellationToken);
@@ -154,7 +155,7 @@ public class GitService : IGitService
             return null;
         }
 
-        var root = result.Output.Trim();
+        string root = result.Output.Trim();
         _logger?.LogInformation($"Repository root: {root}");
         return root;
     }
@@ -167,7 +168,7 @@ public class GitService : IGitService
 
         try
         {
-            var result = await ExecuteGitCommandAsync(
+            GitProcessResult result = await ExecuteGitCommandAsync(
                 Directory.GetCurrentDirectory(),
                 "--version",
                 cancellationToken);
@@ -198,13 +199,13 @@ public class GitService : IGitService
         _logger?.LogInformation($"Getting branches for repository: {repositoryPath}");
 
         // Get local branches
-        var localResult = await ExecuteGitCommandAsync(
+        GitProcessResult localResult = await ExecuteGitCommandAsync(
             repositoryPath,
             "branch --format=%(refname:short)",
             cancellationToken);
 
         // Get remote branches
-        var remoteResult = await ExecuteGitCommandAsync(
+        GitProcessResult remoteResult = await ExecuteGitCommandAsync(
             repositoryPath,
             "branch -r --format=%(refname:short)",
             cancellationToken);
@@ -213,7 +214,7 @@ public class GitService : IGitService
 
         if (localResult.Success && !string.IsNullOrWhiteSpace(localResult.Output))
         {
-            var localBranches = localResult.Output
+            IEnumerable<string> localBranches = localResult.Output
                 .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(b => b.Trim())
                 .Where(b => !string.IsNullOrEmpty(b));
@@ -222,7 +223,7 @@ public class GitService : IGitService
 
         if (remoteResult.Success && !string.IsNullOrWhiteSpace(remoteResult.Output))
         {
-            var remoteBranches = remoteResult.Output
+            IEnumerable<string> remoteBranches = remoteResult.Output
                 .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(b => b.Trim())
                 .Where(b => !string.IsNullOrEmpty(b) && !b.Contains("HEAD"))
@@ -303,12 +304,7 @@ public class GitService : IGitService
             {
                 TryKillProcess(process);
                 _logger?.LogError($"Git command timed out after {DefaultTimeoutMs}ms: git {arguments}");
-                return new GitProcessResult
-                {
-                    Success = false,
-                    ExitCode = -1,
-                    ErrorMessage = "Git command timed out"
-                };
+                return new GitProcessResult { Success = false, ExitCode = -1, ErrorMessage = "Git command timed out" };
             }
             catch (OperationCanceledException)
             {
@@ -316,15 +312,13 @@ public class GitService : IGitService
                 _logger?.LogWarning($"Git command was cancelled: git {arguments}");
                 return new GitProcessResult
                 {
-                    Success = false,
-                    ExitCode = -1,
-                    ErrorMessage = "Git command was cancelled"
+                    Success = false, ExitCode = -1, ErrorMessage = "Git command was cancelled"
                 };
             }
 
-            var exitCode = process.ExitCode;
-            var output = stdout.ToString();
-            var error = stderr.ToString();
+            int exitCode = process.ExitCode;
+            string output = stdout.ToString();
+            string error = stderr.ToString();
 
             // Log stdout if present
             if (!string.IsNullOrWhiteSpace(output))
@@ -360,9 +354,7 @@ public class GitService : IGitService
             _logger?.LogException(ex, $"Failed to execute Git command: git {arguments}");
             return new GitProcessResult
             {
-                Success = false,
-                ExitCode = -1,
-                ErrorMessage = $"Failed to execute Git command: {ex.Message}"
+                Success = false, ExitCode = -1, ErrorMessage = $"Failed to execute Git command: {ex.Message}"
             };
         }
     }
@@ -372,30 +364,36 @@ public class GitService : IGitService
     {
         try
         {
-            if (string.IsNullOrEmpty(path) || !Directory.Exists(path)) 
+            if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+            {
                 return new WorktreeStatus(0, 0, 0, 0);
+            }
 
             // 1. Check modifications and untracked files
             // Use a shorter timeout for status (e.g., 10s) as we don't want to hang the UI enrichment
             using var statusCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            statusCts.CancelAfter(10000); 
+            statusCts.CancelAfter(10000);
 
             // --porcelain=v1 is stable. 
             // -uno (no untracked) is fast, but user specifically wants untracked.
             // Using -unormal is usually faster than -uall.
-            var statusRes = await ExecuteGitCommandAsync(path, "status --porcelain=v1 -unormal", statusCts.Token);
-            
+            GitProcessResult statusRes =
+                await ExecuteGitCommandAsync(path, "status --porcelain=v1 -unormal", statusCts.Token);
+
             int modified = 0;
             int untracked = 0;
 
             if (statusRes.Success && !string.IsNullOrWhiteSpace(statusRes.Output))
             {
-                var lines = statusRes.Output.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-                foreach (var line in lines)
+                string[] lines = statusRes.Output.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (string line in lines)
                 {
-                    if (line.Length < 3) continue;
-                    
-                    var status = line.Substring(0, 2);
+                    if (line.Length < 3)
+                    {
+                        continue;
+                    }
+
+                    string status = line.Substring(0, 2);
                     if (status == "??")
                     {
                         untracked++;
@@ -411,25 +409,35 @@ public class GitService : IGitService
             int ahead = 0;
             int behind = 0;
 
-            try 
+            try
             {
                 // Check if we have an upstream. Use a very short timeout.
                 using var upstreamCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 upstreamCts.CancelAfter(5000);
-                
-                var upstreamRes = await ExecuteGitCommandAsync(path, "rev-parse --abbrev-ref --symbolic-full-name @{u}", upstreamCts.Token);
+
+                GitProcessResult upstreamRes = await ExecuteGitCommandAsync(path,
+                    "rev-parse --abbrev-ref --symbolic-full-name @{u}", upstreamCts.Token);
 
                 if (upstreamRes.Success && !string.IsNullOrWhiteSpace(upstreamRes.Output))
                 {
                     // Get ahead/behind counts
-                    var countRes = await ExecuteGitCommandAsync(path, "rev-list --left-right --count HEAD...@{u}", upstreamCts.Token);
+                    GitProcessResult countRes = await ExecuteGitCommandAsync(path,
+                        "rev-list --left-right --count HEAD...@{u}", upstreamCts.Token);
                     if (countRes.Success && !string.IsNullOrWhiteSpace(countRes.Output))
                     {
-                        var parts = countRes.Output.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                        string[] parts = countRes.Output.Trim()
+                            .Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
                         if (parts.Length >= 2)
                         {
-                            if (int.TryParse(parts[0], out int canForward)) ahead = canForward;
-                            if (int.TryParse(parts[1], out int canPull)) behind = canPull;
+                            if (int.TryParse(parts[0], out int canForward))
+                            {
+                                ahead = canForward;
+                            }
+
+                            if (int.TryParse(parts[1], out int canPull))
+                            {
+                                behind = canPull;
+                            }
                         }
                     }
                 }
@@ -462,7 +470,7 @@ public class GitService : IGitService
         {
             if (!process.HasExited)
             {
-                process.Kill(entireProcessTree: true);
+                process.Kill(true);
             }
         }
         catch

@@ -8,7 +8,7 @@ namespace GitWorktreeManager.Dialogs;
 internal class DeleteConfirmationDialogControl : RemoteUserControl
 {
     public DeleteConfirmationDialogControl(DeleteConfirmationDialogData dataContext)
-        : base(dataContext: dataContext)
+        : base(dataContext)
     {
     }
 }

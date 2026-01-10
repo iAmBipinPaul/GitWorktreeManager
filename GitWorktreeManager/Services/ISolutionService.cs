@@ -9,18 +9,18 @@ public interface ISolutionService : IDisposable
     /// Event raised when the solution changes (opened, closed, or switched).
     /// The event is debounced to prevent excessive refreshes.
     /// </summary>
-    event EventHandler<SolutionChangedEventArgs>? SolutionChanged;
+    public event EventHandler<SolutionChangedEventArgs>? SolutionChanged;
 
     /// <summary>
     /// Gets the current solution directory path, or null if no solution is open.
     /// </summary>
-    string? CurrentSolutionDirectory { get; }
+    public string? CurrentSolutionDirectory { get; }
 
     /// <summary>
     /// Initializes the solution service and starts monitoring for solution events.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
-    Task InitializeAsync(CancellationToken cancellationToken = default);
+    public Task InitializeAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>

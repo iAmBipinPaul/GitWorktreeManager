@@ -32,21 +32,21 @@ public class WorktreeToolWindow : ToolWindow
         : base(extensibility)
     {
         Title = "Worktree Manager";
-        
+
         // Create services
         _loggerService = new ActivityLogService();
-        _gitService = new GitWorktreeManager.Services.GitService(_loggerService);
+        _gitService = new GitService(_loggerService);
         _solutionService = new SolutionService(extensibility, _loggerService);
         _notificationService = new NotificationService(extensibility, _loggerService);
-        
+
         // Create ViewModel with notification service
         _viewModel = new WorktreeViewModel(_gitService, extensibility, _notificationService);
-        
+
         // Subscribe to solution change events
         _solutionService.SolutionChanged += OnSolutionChanged;
-        
+
         _control = new WorktreeToolWindowControl(_viewModel);
-        
+
         // Initialize solution service asynchronously
         _ = InitializeSolutionServiceAsync();
     }
@@ -60,25 +60,25 @@ public class WorktreeToolWindow : ToolWindow
         try
         {
             _loggerService.LogInformation("Initializing WorktreeToolWindow solution monitoring");
-            
+
             // Check if Git is installed first
             await CheckGitInstallationAsync();
-            
+
             if (!_gitInstalled)
             {
                 // Git not installed - don't proceed with solution monitoring
                 return;
             }
-            
+
             await _solutionService.InitializeAsync();
-            
+
             // Set initial repository path and refresh
-            var solutionDirectory = _solutionService.CurrentSolutionDirectory;
+            string? solutionDirectory = _solutionService.CurrentSolutionDirectory;
             if (!string.IsNullOrEmpty(solutionDirectory))
             {
                 await UpdateRepositoryPathAsync(solutionDirectory);
             }
-            
+
             _loggerService.LogInformation("WorktreeToolWindow initialization complete");
         }
         catch (Exception ex)
@@ -96,16 +96,16 @@ public class WorktreeToolWindow : ToolWindow
         try
         {
             _loggerService.LogInformation("Checking Git installation");
-            
+
             _gitInstalled = await _gitService.IsGitInstalledAsync();
-            
+
             if (!_gitInstalled)
             {
                 _loggerService.LogError("Git is not installed or not in PATH");
-                
+
                 // Update ViewModel to show error state
                 _viewModel.SetGitNotInstalledError();
-                
+
                 // Show notification to user
                 await _notificationService.ShowErrorAsync(
                     "Git is not installed or not found in PATH",
@@ -142,7 +142,7 @@ public class WorktreeToolWindow : ToolWindow
         try
         {
             _loggerService.LogInformation($"Solution changed event received: {e.SolutionDirectory ?? "(closed)"}");
-            
+
             if (e.IsSolutionOpen)
             {
                 await UpdateRepositoryPathAsync(e.SolutionDirectory!);
@@ -169,8 +169,8 @@ public class WorktreeToolWindow : ToolWindow
         try
         {
             // Find the Git repository root from the solution directory
-            var repositoryRoot = await _gitService.GetRepositoryRootAsync(solutionDirectory);
-            
+            string? repositoryRoot = await _gitService.GetRepositoryRootAsync(solutionDirectory);
+
             if (!string.IsNullOrEmpty(repositoryRoot))
             {
                 _loggerService.LogInformation($"Found Git repository at: {repositoryRoot}");
@@ -199,9 +199,7 @@ public class WorktreeToolWindow : ToolWindow
     public override ToolWindowConfiguration ToolWindowConfiguration => new()
     {
         // Dock to right side panel by default (like GitHub Copilot, Properties)
-        Placement = ToolWindowPlacement.Floating,
-        DockDirection = Dock.Right,
-        AllowAutoCreation = true,
+        Placement = ToolWindowPlacement.Floating, DockDirection = Dock.Right, AllowAutoCreation = true
     };
 
     /// <summary>
@@ -209,17 +207,19 @@ public class WorktreeToolWindow : ToolWindow
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The Remote UI control for the tool window.</returns>
-    public override Task<IRemoteUserControl> GetContentAsync(CancellationToken cancellationToken)
-    {
-        return Task.FromResult<IRemoteUserControl>(_control);
-    }
+    public override Task<IRemoteUserControl> GetContentAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IRemoteUserControl>(_control);
 
     /// <summary>
     /// Disposes of the tool window resources.
     /// </summary>
     protected override void Dispose(bool disposing)
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
+
         _isDisposed = true;
 
         if (disposing)

@@ -12,10 +12,10 @@ public class SampleTest
     public void TestProjectSetup_ShouldWork()
     {
         // Arrange
-        var expected = true;
+        bool expected = true;
 
         // Act
-        var actual = true;
+        bool actual = true;
 
         // Assert
         actual.Should().Be(expected);

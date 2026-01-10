@@ -39,18 +39,18 @@ public class NotificationService : INotificationService
 
         try
         {
-            var shell = _extensibility.Shell();
-            var title = GetNotificationTitle(severity);
-            var fullMessage = $"{title}: {message}";
+            ShellExtensibility shell = _extensibility.Shell();
+            string title = GetNotificationTitle(severity);
+            string fullMessage = $"{title}: {message}";
 
             if (actions != null && actions.Any())
             {
                 // Show prompt with action buttons using enum-based options
                 var actionList = actions.ToList();
-                
+
                 // For simplicity, we'll show a prompt with OK and let the first action be triggered
                 // VS Extensibility SDK uses enum-based PromptOptions
-                var result = await shell.ShowPromptAsync(
+                bool result = await shell.ShowPromptAsync(
                     fullMessage + "\n\nClick OK to proceed or Cancel to dismiss.",
                     PromptOptions.OKCancel,
                     cancellationToken);
@@ -86,7 +86,7 @@ public class NotificationService : INotificationService
         string? details = null,
         CancellationToken cancellationToken = default)
     {
-        var fullMessage = string.IsNullOrEmpty(details)
+        string fullMessage = string.IsNullOrEmpty(details)
             ? message
             : $"{message}\n\nDetails: {details}";
 
@@ -96,18 +96,14 @@ public class NotificationService : INotificationService
     /// <inheritdoc />
     public async Task ShowWarningAsync(
         string message,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) =>
         await ShowNotificationAsync(message, NotificationSeverity.Warning, null, cancellationToken);
-    }
 
     /// <inheritdoc />
     public async Task ShowInfoAsync(
         string message,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) =>
         await ShowNotificationAsync(message, NotificationSeverity.Information, null, cancellationToken);
-    }
 
     /// <inheritdoc />
     public async Task ShowErrorWithActionAsync(
@@ -116,7 +112,7 @@ public class NotificationService : INotificationService
         Func<CancellationToken, Task> actionCallback,
         CancellationToken cancellationToken = default)
     {
-        var actions = new[] { new NotificationAction(actionText, actionCallback) };
+        NotificationAction[] actions = new[] { new NotificationAction(actionText, actionCallback) };
         await ShowNotificationAsync(message, NotificationSeverity.Error, actions, cancellationToken);
     }
 

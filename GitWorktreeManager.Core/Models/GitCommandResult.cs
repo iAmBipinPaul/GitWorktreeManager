@@ -23,20 +23,14 @@ public record GitCommandResult
     /// <summary>
     /// Creates a successful result.
     /// </summary>
-    public static GitCommandResult Ok() => new()
-    {
-        Success = true,
-        ExitCode = 0
-    };
+    public static GitCommandResult Ok() => new() { Success = true, ExitCode = 0 };
 
     /// <summary>
     /// Creates a failed result with the specified error message and exit code.
     /// </summary>
     public static GitCommandResult Fail(string errorMessage, int exitCode = -1) => new()
     {
-        Success = false,
-        ErrorMessage = errorMessage,
-        ExitCode = exitCode
+        Success = false, ErrorMessage = errorMessage, ExitCode = exitCode
     };
 }
 
@@ -54,20 +48,13 @@ public record GitCommandResult<T> : GitCommandResult
     /// <summary>
     /// Creates a successful result with the specified data.
     /// </summary>
-    public static GitCommandResult<T> Ok(T data) => new()
-    {
-        Success = true,
-        ExitCode = 0,
-        Data = data
-    };
+    public static GitCommandResult<T> Ok(T data) => new() { Success = true, ExitCode = 0, Data = data };
 
     /// <summary>
     /// Creates a failed result with the specified error message and exit code.
     /// </summary>
-    public new static GitCommandResult<T> Fail(string errorMessage, int exitCode = -1) => new()
+    public static new GitCommandResult<T> Fail(string errorMessage, int exitCode = -1) => new()
     {
-        Success = false,
-        ErrorMessage = errorMessage,
-        ExitCode = exitCode
+        Success = false, ErrorMessage = errorMessage, ExitCode = exitCode
     };
 }

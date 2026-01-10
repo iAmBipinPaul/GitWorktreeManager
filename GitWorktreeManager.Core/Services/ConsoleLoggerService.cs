@@ -10,8 +10,8 @@ public class ConsoleLoggerService : ILoggerService
     /// <inheritdoc />
     public void Log(LogLevel level, string message)
     {
-        var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-        var levelStr = level switch
+        string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+        string levelStr = level switch
         {
             LogLevel.Information => "INFO",
             LogLevel.Warning => "WARN",
@@ -23,33 +23,25 @@ public class ConsoleLoggerService : ILoggerService
     }
 
     /// <inheritdoc />
-    public void LogInformation(string message)
-    {
-        Log(LogLevel.Information, message);
-    }
+    public void LogInformation(string message) => Log(LogLevel.Information, message);
 
     /// <inheritdoc />
-    public void LogWarning(string message)
-    {
-        Log(LogLevel.Warning, message);
-    }
+    public void LogWarning(string message) => Log(LogLevel.Warning, message);
 
     /// <inheritdoc />
-    public void LogError(string message)
-    {
-        Log(LogLevel.Error, message);
-    }
+    public void LogError(string message) => Log(LogLevel.Error, message);
 
     /// <inheritdoc />
     public void LogException(Exception exception, string? message = null)
     {
-        var fullMessage = string.IsNullOrEmpty(message)
+        string fullMessage = string.IsNullOrEmpty(message)
             ? $"Exception: {exception.Message}\nStackTrace: {exception.StackTrace}"
             : $"{message}\nException: {exception.Message}\nStackTrace: {exception.StackTrace}";
 
         if (exception.InnerException != null)
         {
-            fullMessage += $"\nInner Exception: {exception.InnerException.Message}\nInner StackTrace: {exception.InnerException.StackTrace}";
+            fullMessage +=
+                $"\nInner Exception: {exception.InnerException.Message}\nInner StackTrace: {exception.InnerException.StackTrace}";
         }
 
         Log(LogLevel.Error, fullMessage);

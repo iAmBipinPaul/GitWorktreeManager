@@ -37,8 +37,7 @@ public class AsyncCommand : IAsyncCommand
     /// <param name="clientContext">The client context.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>A task representing the async operation.</returns>
-    public async Task ExecuteAsync(object? parameter, IClientContext clientContext, CancellationToken cancellationToken)
-    {
+    public async Task
+        ExecuteAsync(object? parameter, IClientContext clientContext, CancellationToken cancellationToken) =>
         await _execute(parameter, cancellationToken);
-    }
 }

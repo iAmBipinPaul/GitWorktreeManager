@@ -32,30 +32,30 @@ public interface ILoggerService
     /// </summary>
     /// <param name="level">The log level.</param>
     /// <param name="message">The message to log.</param>
-    void Log(LogLevel level, string message);
+    public void Log(LogLevel level, string message);
 
     /// <summary>
     /// Logs an informational message.
     /// </summary>
     /// <param name="message">The message to log.</param>
-    void LogInformation(string message);
+    public void LogInformation(string message);
 
     /// <summary>
     /// Logs a warning message.
     /// </summary>
     /// <param name="message">The message to log.</param>
-    void LogWarning(string message);
+    public void LogWarning(string message);
 
     /// <summary>
     /// Logs an error message.
     /// </summary>
     /// <param name="message">The message to log.</param>
-    void LogError(string message);
+    public void LogError(string message);
 
     /// <summary>
     /// Logs an exception with full details including stack trace.
     /// </summary>
     /// <param name="exception">The exception to log.</param>
     /// <param name="message">Optional additional context message.</param>
-    void LogException(Exception exception, string? message = null);
+    public void LogException(Exception exception, string? message = null);
 }

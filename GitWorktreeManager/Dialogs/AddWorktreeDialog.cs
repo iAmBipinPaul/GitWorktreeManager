@@ -1,3 +1,4 @@
+using GitWorktreeManager.Models;
 using Microsoft.VisualStudio.Extensibility;
 using Microsoft.VisualStudio.Extensibility.Shell;
 using GitWorktreeManager.Services;
@@ -28,18 +29,14 @@ public class AddWorktreeDialog
         CancellationToken cancellationToken = default)
     {
         // Load branches first
-        var branches = await LoadBranchesAsync(repositoryPath, cancellationToken);
-        
+        List<string> branches = await LoadBranchesAsync(repositoryPath, cancellationToken);
+
         if (branches.Count == 0)
         {
             // No branches found - show error
             await _extensibility.Shell().ShowPromptAsync(
                 "No branches found in the repository.",
-                new PromptOptions<bool>
-                {
-                    DismissedReturns = false,
-                    Choices = { { "OK", true } }
-                },
+                new PromptOptions<bool> { DismissedReturns = false, Choices = { { "OK", true } } },
                 cancellationToken);
             return null;
         }
@@ -47,24 +44,23 @@ public class AddWorktreeDialog
         // Create dialog data
         var dialogData = new AddWorktreeDialogData
         {
-            RepositoryPath = repositoryPath ?? string.Empty,
-            CreateNewBranch = true
+            RepositoryPath = repositoryPath ?? string.Empty, CreateNewBranch = true
         };
 
         // Add branches
-        foreach (var branch in branches)
+        foreach (string branch in branches)
         {
             dialogData.AvailableBranches.Add(branch);
         }
 
         // Set default selected branch (main, master, or first)
-        dialogData.SelectedBranch = branches.FirstOrDefault(b => b == "main") 
-            ?? branches.FirstOrDefault(b => b == "master") 
-            ?? branches.FirstOrDefault();
+        dialogData.SelectedBranch = branches.FirstOrDefault(b => b == "main")
+                                    ?? branches.FirstOrDefault(b => b == "master")
+                                    ?? branches.FirstOrDefault();
 
         // Create completion source for result
         var resultTcs = new TaskCompletionSource<AddWorktreeDialogResult?>();
-        
+
         // Create cancellation source to close the dialog
         var dialogCts = new CancellationTokenSource();
 
@@ -114,10 +110,10 @@ public class AddWorktreeDialog
 
         // Show dialog using VS Extensibility
         var dialogControl = new AddWorktreeDialogControl(dialogData);
-        
+
         // Link the dialog cancellation with the external cancellation token
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, dialogCts.Token);
-        
+
         try
         {
             // Use DialogOption.None to prevent VS from adding default buttons
@@ -145,7 +141,7 @@ public class AddWorktreeDialog
         {
             return await resultTcs.Task;
         }
-        
+
         return null;
     }
 
@@ -160,7 +156,8 @@ public class AddWorktreeDialog
 
         try
         {
-            var result = await _gitService.GetBranchesAsync(repositoryPath, cancellationToken);
+            GitCommandResult<IReadOnlyList<string>> result =
+                await _gitService.GetBranchesAsync(repositoryPath, cancellationToken);
             if (result.Success && result.Data != null)
             {
                 return result.Data.ToList();

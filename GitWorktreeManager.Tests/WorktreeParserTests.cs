@@ -1,5 +1,6 @@
 using Xunit;
 using FluentAssertions;
+using GitWorktreeManager.Models;
 using GitWorktreeManager.Services;
 
 namespace GitWorktreeManager.Tests;
@@ -13,10 +14,10 @@ public class WorktreeParserTests
     public void ParsePorcelainOutput_WithEmptyString_ReturnsEmptyList()
     {
         // Arrange
-        var output = "";
+        string output = "";
 
         // Act
-        var result = WorktreeParser.ParsePorcelainOutput(output);
+        IReadOnlyList<Worktree> result = WorktreeParser.ParsePorcelainOutput(output);
 
         // Assert
         result.Should().BeEmpty();
@@ -26,10 +27,10 @@ public class WorktreeParserTests
     public void ParsePorcelainOutput_WithWhitespaceOnly_ReturnsEmptyList()
     {
         // Arrange
-        var output = "   \n\n   ";
+        string output = "   \n\n   ";
 
         // Act
-        var result = WorktreeParser.ParsePorcelainOutput(output);
+        IReadOnlyList<Worktree> result = WorktreeParser.ParsePorcelainOutput(output);
 
         // Assert
         result.Should().BeEmpty();
@@ -39,10 +40,10 @@ public class WorktreeParserTests
     public void ParsePorcelainOutput_WithSingleWorktree_ParsesCorrectly()
     {
         // Arrange
-        var output = "worktree /path/to/main\nHEAD abc123def456\nbranch refs/heads/main\n";
+        string output = "worktree /path/to/main\nHEAD abc123def456\nbranch refs/heads/main\n";
 
         // Act
-        var result = WorktreeParser.ParsePorcelainOutput(output);
+        IReadOnlyList<Worktree> result = WorktreeParser.ParsePorcelainOutput(output);
 
         // Assert
         result.Should().HaveCount(1);
@@ -57,7 +58,7 @@ public class WorktreeParserTests
     public void ParsePorcelainOutput_WithMultipleWorktrees_MarksFirstAsMain()
     {
         // Arrange
-        var output = @"worktree /path/to/main
+        string output = @"worktree /path/to/main
 HEAD abc123def456
 branch refs/heads/main
 
@@ -66,7 +67,7 @@ HEAD def456abc789
 branch refs/heads/feature-branch";
 
         // Act
-        var result = WorktreeParser.ParsePorcelainOutput(output);
+        IReadOnlyList<Worktree> result = WorktreeParser.ParsePorcelainOutput(output);
 
         // Assert
         result.Should().HaveCount(2);
@@ -79,12 +80,12 @@ branch refs/heads/feature-branch";
     public void ParsePorcelainOutput_WithDetachedHead_SetsIsDetachedTrue()
     {
         // Arrange
-        var output = @"worktree /path/to/detached
+        string output = @"worktree /path/to/detached
 HEAD 789abc123def
 detached";
 
         // Act
-        var result = WorktreeParser.ParsePorcelainOutput(output);
+        IReadOnlyList<Worktree> result = WorktreeParser.ParsePorcelainOutput(output);
 
         // Assert
         result.Should().HaveCount(1);
@@ -96,13 +97,13 @@ detached";
     public void ParsePorcelainOutput_WithLockedWorktree_SetsIsLockedTrue()
     {
         // Arrange
-        var output = @"worktree /path/to/locked
+        string output = @"worktree /path/to/locked
 HEAD abc123
 branch refs/heads/feature
 locked";
 
         // Act
-        var result = WorktreeParser.ParsePorcelainOutput(output);
+        IReadOnlyList<Worktree> result = WorktreeParser.ParsePorcelainOutput(output);
 
         // Assert
         result.Should().HaveCount(1);
@@ -114,14 +115,14 @@ locked";
     public void ParsePorcelainOutput_WithLockedWorktreeAndReason_ParsesLockReason()
     {
         // Arrange
-        var output = @"worktree /path/to/locked
+        string output = @"worktree /path/to/locked
 HEAD abc123
 branch refs/heads/feature
 locked
 locked reason: Working on critical fix";
 
         // Act
-        var result = WorktreeParser.ParsePorcelainOutput(output);
+        IReadOnlyList<Worktree> result = WorktreeParser.ParsePorcelainOutput(output);
 
         // Assert
         result.Should().HaveCount(1);
@@ -133,13 +134,13 @@ locked reason: Working on critical fix";
     public void ParsePorcelainOutput_WithPrunableWorktree_SetsIsPrunableTrue()
     {
         // Arrange
-        var output = @"worktree /path/to/prunable
+        string output = @"worktree /path/to/prunable
 HEAD abc123
 branch refs/heads/old-branch
 prunable";
 
         // Act
-        var result = WorktreeParser.ParsePorcelainOutput(output);
+        IReadOnlyList<Worktree> result = WorktreeParser.ParsePorcelainOutput(output);
 
         // Assert
         result.Should().HaveCount(1);
@@ -150,7 +151,7 @@ prunable";
     public void ParsePorcelainOutput_WithComplexScenario_ParsesAllFields()
     {
         // Arrange - matches the example from design doc
-        var output = @"worktree /path/to/main
+        string output = @"worktree /path/to/main
 HEAD abc123def456
 branch refs/heads/main
 
@@ -166,7 +167,7 @@ detached
 prunable";
 
         // Act
-        var result = WorktreeParser.ParsePorcelainOutput(output);
+        IReadOnlyList<Worktree> result = WorktreeParser.ParsePorcelainOutput(output);
 
         // Assert
         result.Should().HaveCount(3);
@@ -199,10 +200,11 @@ prunable";
     public void ParsePorcelainOutput_WithWindowsLineEndings_ParsesCorrectly()
     {
         // Arrange
-        var output = "worktree C:\\path\\to\\main\r\nHEAD abc123\r\nbranch refs/heads/main\r\n\r\nworktree C:\\path\\to\\feature\r\nHEAD def456\r\nbranch refs/heads/feature";
+        string output =
+            "worktree C:\\path\\to\\main\r\nHEAD abc123\r\nbranch refs/heads/main\r\n\r\nworktree C:\\path\\to\\feature\r\nHEAD def456\r\nbranch refs/heads/feature";
 
         // Act
-        var result = WorktreeParser.ParsePorcelainOutput(output);
+        IReadOnlyList<Worktree> result = WorktreeParser.ParsePorcelainOutput(output);
 
         // Assert
         result.Should().HaveCount(2);
@@ -214,7 +216,7 @@ prunable";
     public void ParsePorcelainOutput_WithMissingPath_SkipsInvalidBlock()
     {
         // Arrange
-        var output = @"HEAD abc123
+        string output = @"HEAD abc123
 branch refs/heads/main
 
 worktree /valid/path
@@ -222,7 +224,7 @@ HEAD def456
 branch refs/heads/feature";
 
         // Act
-        var result = WorktreeParser.ParsePorcelainOutput(output);
+        IReadOnlyList<Worktree> result = WorktreeParser.ParsePorcelainOutput(output);
 
         // Assert
         result.Should().HaveCount(1);
@@ -233,7 +235,7 @@ branch refs/heads/feature";
     public void ParsePorcelainOutput_WithMissingHead_SkipsInvalidBlock()
     {
         // Arrange
-        var output = @"worktree /invalid/path
+        string output = @"worktree /invalid/path
 branch refs/heads/main
 
 worktree /valid/path
@@ -241,7 +243,7 @@ HEAD def456
 branch refs/heads/feature";
 
         // Act
-        var result = WorktreeParser.ParsePorcelainOutput(output);
+        IReadOnlyList<Worktree> result = WorktreeParser.ParsePorcelainOutput(output);
 
         // Assert
         result.Should().HaveCount(1);
@@ -252,12 +254,12 @@ branch refs/heads/feature";
     public void ParsePorcelainOutput_ExtractsBranchNameWithoutRefsHeadsPrefix()
     {
         // Arrange
-        var output = @"worktree /path/to/repo
+        string output = @"worktree /path/to/repo
 HEAD abc123
 branch refs/heads/feature/my-feature";
 
         // Act
-        var result = WorktreeParser.ParsePorcelainOutput(output);
+        IReadOnlyList<Worktree> result = WorktreeParser.ParsePorcelainOutput(output);
 
         // Assert
         result.Should().HaveCount(1);

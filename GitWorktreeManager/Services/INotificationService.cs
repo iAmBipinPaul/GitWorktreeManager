@@ -61,7 +61,7 @@ public interface INotificationService
     /// <param name="severity">The severity level of the notification.</param>
     /// <param name="actions">Optional action buttons to include.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
-    Task ShowNotificationAsync(
+    public Task ShowNotificationAsync(
         string message,
         NotificationSeverity severity = NotificationSeverity.Information,
         IEnumerable<NotificationAction>? actions = null,
@@ -73,7 +73,7 @@ public interface INotificationService
     /// <param name="message">The error message to display.</param>
     /// <param name="details">Optional additional details (e.g., git stderr output).</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
-    Task ShowErrorAsync(
+    public Task ShowErrorAsync(
         string message,
         string? details = null,
         CancellationToken cancellationToken = default);
@@ -83,7 +83,7 @@ public interface INotificationService
     /// </summary>
     /// <param name="message">The warning message to display.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
-    Task ShowWarningAsync(
+    public Task ShowWarningAsync(
         string message,
         CancellationToken cancellationToken = default);
 
@@ -92,7 +92,7 @@ public interface INotificationService
     /// </summary>
     /// <param name="message">The informational message to display.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
-    Task ShowInfoAsync(
+    public Task ShowInfoAsync(
         string message,
         CancellationToken cancellationToken = default);
 
@@ -103,7 +103,7 @@ public interface INotificationService
     /// <param name="actionText">The text for the action button.</param>
     /// <param name="actionCallback">The callback to invoke when the action is clicked.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
-    Task ShowErrorWithActionAsync(
+    public Task ShowErrorWithActionAsync(
         string message,
         string actionText,
         Func<CancellationToken, Task> actionCallback,

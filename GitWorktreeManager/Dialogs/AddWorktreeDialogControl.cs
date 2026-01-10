@@ -13,7 +13,7 @@ internal class AddWorktreeDialogControl : RemoteUserControl
     /// </summary>
     /// <param name="dataContext">The data context providing data and commands for the dialog.</param>
     public AddWorktreeDialogControl(AddWorktreeDialogData dataContext)
-        : base(dataContext: dataContext)
+        : base(dataContext)
     {
     }
 }

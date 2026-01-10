@@ -1,6 +1,6 @@
 namespace GitWorktreeManager.Services;
 
-using GitWorktreeManager.Models;
+using Models;
 
 /// <summary>
 /// Parses Git worktree porcelain output into Worktree model objects.
@@ -20,15 +20,15 @@ public static class WorktreeParser
         }
 
         var worktrees = new List<Worktree>();
-        
+
         // Split output into blocks by double newlines (handles both \n\n and \r\n\r\n)
-        var blocks = output.Split(
+        string[] blocks = output.Split(
             new[] { "\n\n", "\r\n\r\n" },
             StringSplitOptions.RemoveEmptyEntries);
 
-        foreach (var block in blocks)
+        foreach (string block in blocks)
         {
-            var worktree = ParseWorktreeBlock(block);
+            Worktree? worktree = ParseWorktreeBlock(block);
             if (worktree != null)
             {
                 worktrees.Add(worktree);
@@ -49,7 +49,7 @@ public static class WorktreeParser
     /// </summary>
     private static Worktree? ParseWorktreeBlock(string block)
     {
-        var lines = block.Split(
+        string[] lines = block.Split(
             new[] { '\n', '\r' },
             StringSplitOptions.RemoveEmptyEntries);
 
@@ -60,7 +60,7 @@ public static class WorktreeParser
         string? lockReason = null;
         bool isPrunable = false;
 
-        foreach (var line in lines)
+        foreach (string line in lines)
         {
             if (line.StartsWith("worktree "))
             {

@@ -25,11 +25,7 @@ public class DeleteConfirmationDialog
         string worktreePath,
         CancellationToken cancellationToken = default)
     {
-        var dialogData = new DeleteConfirmationDialogData
-        {
-            WorktreeName = worktreeName,
-            WorktreePath = worktreePath
-        };
+        var dialogData = new DeleteConfirmationDialogData { WorktreeName = worktreeName, WorktreePath = worktreePath };
 
         // Create completion source for result
         var resultTcs = new TaskCompletionSource<bool>();

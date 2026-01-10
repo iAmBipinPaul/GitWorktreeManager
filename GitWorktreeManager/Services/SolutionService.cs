@@ -11,11 +11,11 @@ using Microsoft.VisualStudio.ProjectSystem.Query;
 public class SolutionService : ISolutionService
 {
     private const int DebounceDelayMs = 500;
-    
+
     private readonly VisualStudioExtensibility _extensibility;
     private readonly ILoggerService? _logger;
     private readonly object _debounceLock = new();
-    
+
     private CancellationTokenSource? _debounceCts;
     private Timer? _debounceTimer;
     private string? _currentSolutionDirectory;
@@ -49,13 +49,14 @@ public class SolutionService : ISolutionService
         {
             // Get the initial solution state
             await RefreshCurrentSolutionAsync(cancellationToken);
-            
+
             // Start polling for solution changes
             // Note: VisualStudio.Extensibility SDK doesn't have direct solution events in the out-of-process model,
             // so we use a polling approach with debouncing
             StartSolutionPolling();
-            
-            _logger?.LogInformation($"SolutionService initialized. Current solution: {_currentSolutionDirectory ?? "(none)"}");
+
+            _logger?.LogInformation(
+                $"SolutionService initialized. Current solution: {_currentSolutionDirectory ?? "(none)"}");
         }
         catch (Exception ex)
         {
@@ -92,16 +93,20 @@ public class SolutionService : ISolutionService
     /// </summary>
     private async Task CheckForSolutionChangeAsync()
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
 
         try
         {
-            var previousDirectory = _currentSolutionDirectory;
+            string? previousDirectory = _currentSolutionDirectory;
             await RefreshCurrentSolutionAsync(CancellationToken.None);
 
             if (!string.Equals(previousDirectory, _currentSolutionDirectory, StringComparison.OrdinalIgnoreCase))
             {
-                _logger?.LogInformation($"Solution changed from '{previousDirectory ?? "(none)"}' to '{_currentSolutionDirectory ?? "(none)"}'");
+                _logger?.LogInformation(
+                    $"Solution changed from '{previousDirectory ?? "(none)"}' to '{_currentSolutionDirectory ?? "(none)"}'");
                 RaiseSolutionChangedDebounced(_currentSolutionDirectory);
             }
         }
@@ -119,23 +124,25 @@ public class SolutionService : ISolutionService
         try
         {
             // Query the workspace for the current solution
-            var workspaceQuery = _extensibility.Workspaces();
-            var result = await workspaceQuery.QuerySolutionAsync(
+            WorkspacesExtensibility workspaceQuery = _extensibility.Workspaces();
+            IQueryResults<ISolutionSnapshot> result = await workspaceQuery.QuerySolutionAsync(
                 solution => solution.With(s => s.Path),
                 cancellationToken);
 
             string? solutionPath = null;
-            
+
             // IQueryResults implements IEnumerable, not IAsyncEnumerable
-            foreach (var solution in result)
+            foreach (ISolutionSnapshot solution in result)
             {
                 if (cancellationToken.IsCancellationRequested)
+                {
                     break;
-                    
+                }
+
                 solutionPath = solution.Path;
                 break; // We only need the first (and only) solution
             }
-            
+
             if (!string.IsNullOrEmpty(solutionPath))
             {
                 _currentSolutionDirectory = Path.GetDirectoryName(solutionPath);
@@ -173,7 +180,7 @@ public class SolutionService : ISolutionService
                 try
                 {
                     await Task.Delay(DebounceDelayMs, _debounceCts.Token);
-                    
+
                     // If we get here, the delay completed without cancellation
                     string? directoryToRaise;
                     lock (_debounceLock)
@@ -181,7 +188,8 @@ public class SolutionService : ISolutionService
                         directoryToRaise = _pendingSolutionDirectory;
                     }
 
-                    _logger?.LogInformation($"Raising debounced SolutionChanged event for: {directoryToRaise ?? "(none)"}");
+                    _logger?.LogInformation(
+                        $"Raising debounced SolutionChanged event for: {directoryToRaise ?? "(none)"}");
                     SolutionChanged?.Invoke(this, new SolutionChangedEventArgs(directoryToRaise));
                 }
                 catch (OperationCanceledException)
@@ -201,15 +209,16 @@ public class SolutionService : ISolutionService
     /// Manually triggers a solution change check and event.
     /// Useful for forcing a refresh when the solution state may have changed.
     /// </summary>
-    public void TriggerSolutionCheck()
-    {
-        _ = CheckForSolutionChangeAsync();
-    }
+    public void TriggerSolutionCheck() => _ = CheckForSolutionChangeAsync();
 
     /// <inheritdoc />
     public void Dispose()
     {
-        if (_isDisposed) return;
+        if (_isDisposed)
+        {
+            return;
+        }
+
         _isDisposed = true;
 
         _logger?.LogInformation("Disposing SolutionService");

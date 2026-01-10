@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using GitWorktreeManager.Dialogs;
+using GitWorktreeManager.Models;
 using GitWorktreeManager.Services;
 using Microsoft.VisualStudio.Extensibility;
 using Microsoft.VisualStudio.Extensibility.UI;
@@ -36,7 +37,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
     /// <param name="extensibility">The VS extensibility object for showing dialogs.</param>
     /// <param name="notificationService">The notification service for displaying messages.</param>
     public WorktreeViewModel(
-        IGitService gitService, 
+        IGitService gitService,
         VisualStudioExtensibility? extensibility = null,
         INotificationService? notificationService = null)
     {
@@ -45,23 +46,24 @@ public class WorktreeViewModel : INotifyPropertyChanged
         _notificationService = notificationService;
         Worktrees = new ObservableCollection<WorktreeItemViewModel>();
         _filteredWorktrees = new ObservableCollection<WorktreeItemViewModel>();
-        
+
         // Initialize commands
         RefreshCommand = new AsyncCommand(async (_, ct) => await RefreshAsync(ct));
         AddWorktreeCommand = new AsyncCommand(async (_, ct) => await OnAddWorktreeCommandAsync(ct));
-        RemoveWorktreeCommand = new AsyncCommand(async (param, ct) => 
+        RemoveWorktreeCommand = new AsyncCommand(async (param, ct) =>
         {
             // Debug: Log what we received
-            System.Diagnostics.Debug.WriteLine($"RemoveWorktreeCommand received param type: {param?.GetType().Name ?? "null"}");
-            
+            System.Diagnostics.Debug.WriteLine(
+                $"RemoveWorktreeCommand received param type: {param?.GetType().Name ?? "null"}");
+
             if (param is WorktreeItemViewModel item)
             {
-                await RemoveWorktreeAsync(item, force: false, ct);
+                await RemoveWorktreeAsync(item, false, ct);
             }
             else
             {
                 // Parameter wasn't the expected type - show error
-                var errorMsg = $"Remove command received unexpected parameter: {param?.GetType().Name ?? "null"}";
+                string errorMsg = $"Remove command received unexpected parameter: {param?.GetType().Name ?? "null"}";
                 System.Diagnostics.Debug.WriteLine(errorMsg);
                 await ShowErrorNotificationAsync("Failed to remove worktree - invalid selection", ct);
             }
@@ -179,7 +181,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
         {
             // Show the Add Worktree dialog with GitService for branch loading
             var dialog = new AddWorktreeDialog(_extensibility, _gitService);
-            var result = await dialog.ShowAsync(RepositoryPath, cancellationToken);
+            AddWorktreeDialogResult? result = await dialog.ShowAsync(RepositoryPath, cancellationToken);
 
             if (result == null)
             {
@@ -203,7 +205,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
             }
 
             // Add the worktree
-            var addResult = await AddWorktreeAsync(
+            (bool Success, string? ErrorMessage) addResult = await AddWorktreeAsync(
                 result.WorktreePath,
                 result.BranchName,
                 result.CreateNewBranch,
@@ -213,14 +215,14 @@ public class WorktreeViewModel : INotifyPropertyChanged
             if (addResult.Success)
             {
                 SuccessMessage = $"Worktree '{result.BranchName}' created successfully!";
-                
+
                 // Open in new VS window if requested
                 if (result.OpenAfterCreation)
                 {
                     var worktreeItem = new WorktreeItemViewModel
                     {
                         Path = result.WorktreePath,
-                        DisplayPath = System.IO.Path.GetFileName(result.WorktreePath),
+                        DisplayPath = Path.GetFileName(result.WorktreePath),
                         BranchName = result.BranchName,
                         HeadCommit = string.Empty,
                         IsMainWorktree = false,
@@ -233,7 +235,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            var errorMsg = $"Error adding worktree: {ex.Message}";
+            string errorMsg = $"Error adding worktree: {ex.Message}";
             ErrorMessage = errorMsg;
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
         }
@@ -396,7 +398,8 @@ public class WorktreeViewModel : INotifyPropertyChanged
     {
         IsGitNotInstalled = true;
         HasRepository = false;
-        ErrorMessage = "Git is not installed or not found in PATH. Please install Git and ensure it is added to your system PATH.";
+        ErrorMessage =
+            "Git is not installed or not found in PATH. Please install Git and ensure it is added to your system PATH.";
         OnPropertyChanged(nameof(IsGitNotInstalled));
     }
 
@@ -408,10 +411,15 @@ public class WorktreeViewModel : INotifyPropertyChanged
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         // Cancel any previous enrichment
-        if (_enrichmentCts != null) await _enrichmentCts.CancelAsync();
+        if (_enrichmentCts != null)
+        {
+            await _enrichmentCts.CancelAsync();
+        }
+
         _enrichmentCts = new CancellationTokenSource();
         // Link with the passed token if needed, but usually enrichment can run independently until refresh
-        var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _enrichmentCts.Token).Token;
+        CancellationToken linkedToken = CancellationTokenSource
+            .CreateLinkedTokenSource(cancellationToken, _enrichmentCts.Token).Token;
 
         // Don't refresh if Git is not installed
         if (IsGitNotInstalled)
@@ -436,22 +444,23 @@ public class WorktreeViewModel : INotifyPropertyChanged
         try
         {
             // PHASE 1: Fast load
-            var result = await _gitService.GetWorktreesAsync(RepositoryPath, cancellationToken);
+            GitCommandResult<IReadOnlyList<Worktree>> result =
+                await _gitService.GetWorktreesAsync(RepositoryPath, cancellationToken);
 
             if (result.Success && result.Data != null)
             {
                 HasRepository = true;
                 Worktrees.Clear();
 
-                foreach (var worktree in result.Data)
+                foreach (Worktree worktree in result.Data)
                 {
-                    var viewModel = MapToViewModel(worktree);
+                    WorktreeItemViewModel viewModel = MapToViewModel(worktree);
                     // Initialize new properties
-                    viewModel.IsLoadingStatus = true; 
+                    viewModel.IsLoadingStatus = true;
                     viewModel.StatusSummary = "Loading status...";
                     Worktrees.Add(viewModel);
                 }
-                
+
                 UpdateFilteredWorktrees();
 
                 // PHASE 2: Background Enrichment
@@ -461,15 +470,16 @@ public class WorktreeViewModel : INotifyPropertyChanged
             else
             {
                 HasRepository = false;
-                var errorMsg = result.ErrorMessage ?? "Failed to retrieve worktrees";
+                string errorMsg = result.ErrorMessage ?? "Failed to retrieve worktrees";
                 ErrorMessage = errorMsg;
                 Worktrees.Clear();
                 FilteredWorktrees.Clear();
                 OnPropertyChanged(nameof(ShowNoWorktreesMessage));
                 OnPropertyChanged(nameof(ShowWorktreeList));
-                
+
                 // Show notification for git errors (includes stderr)
-                await ShowErrorNotificationAsync("Failed to retrieve worktrees", result.ErrorMessage, cancellationToken);
+                await ShowErrorNotificationAsync("Failed to retrieve worktrees", result.ErrorMessage,
+                    cancellationToken);
             }
         }
         catch (OperationCanceledException)
@@ -479,7 +489,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             HasRepository = false;
-            var errorMsg = $"Error refreshing worktrees: {ex.Message}";
+            string errorMsg = $"Error refreshing worktrees: {ex.Message}";
             ErrorMessage = errorMsg;
             Worktrees.Clear();
             FilteredWorktrees.Clear();
@@ -498,11 +508,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
         try
         {
             // Use Parallel.ForEachAsync to limit concurrency to 4
-            var options = new ParallelOptions 
-            { 
-                MaxDegreeOfParallelism = 4, 
-                CancellationToken = ct 
-            };
+            var options = new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = ct };
 
             await Parallel.ForEachAsync(items, options, async (item, token) =>
             {
@@ -514,15 +520,15 @@ public class WorktreeViewModel : INotifyPropertyChanged
                     return;
                 }
 
-                try 
+                try
                 {
-                    var status = await _gitService.GetWorktreeStatusAsync(item.Path, item.BranchName, token);
-                    
+                    WorktreeStatus status = await _gitService.GetWorktreeStatusAsync(item.Path, item.BranchName, token);
+
                     // Update properties on the view model
                     item.UncommittedChangesCount = status.ModifiedCount;
                     item.UntrackedChangesCount = status.UntrackedCount;
                     item.HasUncommittedChanges = status.ModifiedCount > 0;
-                    
+
                     item.IncomingCommits = status.Incoming;
                     item.OutgoingCommits = status.Outgoing;
                     item.StatusSummary = FormatStatusSummary(status);
@@ -554,9 +560,16 @@ public class WorktreeViewModel : INotifyPropertyChanged
     private string FormatStatusSummary(WorktreeStatus status)
     {
         var parts = new List<string>();
-        if (status.Incoming > 0) parts.Add($"{status.Incoming} behind");
-        if (status.Outgoing > 0) parts.Add($"{status.Outgoing} ahead");
-        
+        if (status.Incoming > 0)
+        {
+            parts.Add($"{status.Incoming} behind");
+        }
+
+        if (status.Outgoing > 0)
+        {
+            parts.Add($"{status.Outgoing} ahead");
+        }
+
         return parts.Count > 0 ? string.Join(", ", parts) : "Synced";
     }
 
@@ -572,14 +585,14 @@ public class WorktreeViewModel : INotifyPropertyChanged
     {
         if (worktreeItem == null)
         {
-            var errorMsg = "No worktree selected";
+            string errorMsg = "No worktree selected";
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
         }
 
-        if (!System.IO.Directory.Exists(worktreeItem.Path))
+        if (!Directory.Exists(worktreeItem.Path))
         {
-            var errorMsg = $"Worktree path does not exist: {worktreeItem.Path}";
+            string errorMsg = $"Worktree path does not exist: {worktreeItem.Path}";
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
         }
@@ -587,10 +600,10 @@ public class WorktreeViewModel : INotifyPropertyChanged
         try
         {
             // Find solution files in the worktree path
-            var solutionFiles = System.IO.Directory.GetFiles(
+            string[] solutionFiles = Directory.GetFiles(
                 worktreeItem.Path,
                 "*.sln",
-                System.IO.SearchOption.TopDirectoryOnly);
+                SearchOption.TopDirectoryOnly);
 
             string argument;
 
@@ -613,21 +626,16 @@ public class WorktreeViewModel : INotifyPropertyChanged
             // Launch devenv.exe with the appropriate argument
             var startInfo = new System.Diagnostics.ProcessStartInfo
             {
-                FileName = "devenv.exe",
-                Arguments = argument,
-                UseShellExecute = true
+                FileName = "devenv.exe", Arguments = argument, UseShellExecute = true
             };
 
-            await Task.Run(() =>
-            {
-                System.Diagnostics.Process.Start(startInfo);
-            }, cancellationToken);
+            await Task.Run(() => { System.Diagnostics.Process.Start(startInfo); }, cancellationToken);
 
             return (true, null);
         }
         catch (Exception ex)
         {
-            var errorMsg = $"Error opening worktree in new window: {ex.Message}";
+            string errorMsg = $"Error opening worktree in new window: {ex.Message}";
             ErrorMessage = errorMsg;
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
@@ -647,10 +655,10 @@ public class WorktreeViewModel : INotifyPropertyChanged
         CancellationToken cancellationToken = default)
     {
         System.Diagnostics.Debug.WriteLine($"RemoveWorktreeAsync called for: {worktreeItem?.Path ?? "null"}");
-        
+
         if (string.IsNullOrEmpty(RepositoryPath))
         {
-            var errorMsg = "No repository is currently open";
+            string errorMsg = "No repository is currently open";
             ErrorMessage = errorMsg;
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
@@ -658,7 +666,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
 
         if (worktreeItem == null)
         {
-            var errorMsg = "No worktree selected";
+            string errorMsg = "No worktree selected";
             ErrorMessage = errorMsg;
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
@@ -667,7 +675,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
         // Validate not main worktree
         if (worktreeItem.IsMainWorktree)
         {
-            var errorMsg = "Cannot remove the main worktree";
+            string errorMsg = "Cannot remove the main worktree";
             ErrorMessage = errorMsg;
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
@@ -675,7 +683,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
 
         if (!worktreeItem.CanRemove)
         {
-            var errorMsg = "This worktree cannot be removed";
+            string errorMsg = "This worktree cannot be removed";
             ErrorMessage = errorMsg;
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
@@ -684,7 +692,8 @@ public class WorktreeViewModel : INotifyPropertyChanged
         // Check if this is the currently open worktree
         if (IsCurrentWorktree(worktreeItem.Path))
         {
-            var errorMsg = "Cannot remove the currently open worktree. Please close this solution first or switch to a different worktree.";
+            string errorMsg =
+                "Cannot remove the currently open worktree. Please close this solution first or switch to a different worktree.";
             ErrorMessage = errorMsg;
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
@@ -692,7 +701,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
 
         if (_extensibility == null)
         {
-            var errorMsg = "Cannot remove worktree: extensibility service not available for confirmation.";
+            string errorMsg = "Cannot remove worktree: extensibility service not available for confirmation.";
             ErrorMessage = errorMsg;
             return (false, errorMsg);
         }
@@ -700,9 +709,10 @@ public class WorktreeViewModel : INotifyPropertyChanged
         // Show confirmation dialog (skip if forcing, as user just confirmed via the Force dialog)
         if (_extensibility != null && !force)
         {
-            var confirmMessage = $"Are you sure you want to remove the worktree '{worktreeItem.DisplayPath}'?\n\nBranch: {worktreeItem.BranchName}\nPath: {worktreeItem.Path}\n\nThis will delete the worktree folder and its contents.";
-            
-            var result = await _extensibility.Shell().ShowPromptAsync(
+            string confirmMessage =
+                $"Are you sure you want to remove the worktree '{worktreeItem.DisplayPath}'?\n\nBranch: {worktreeItem.BranchName}\nPath: {worktreeItem.Path}\n\nThis will delete the worktree folder and its contents.";
+
+            bool result = await _extensibility.Shell().ShowPromptAsync(
                 confirmMessage,
                 Microsoft.VisualStudio.Extensibility.Shell.PromptOptions.OKCancel,
                 cancellationToken);
@@ -721,14 +731,15 @@ public class WorktreeViewModel : INotifyPropertyChanged
         try
         {
             System.Diagnostics.Debug.WriteLine($"Calling GitService.RemoveWorktreeAsync for: {worktreeItem.Path}");
-            
-            var result = await _gitService.RemoveWorktreeAsync(
+
+            GitCommandResult result = await _gitService.RemoveWorktreeAsync(
                 RepositoryPath,
                 worktreeItem.Path,
                 force,
                 cancellationToken);
 
-            System.Diagnostics.Debug.WriteLine($"RemoveWorktreeAsync result: Success={result.Success}, Error={result.ErrorMessage}");
+            System.Diagnostics.Debug.WriteLine(
+                $"RemoveWorktreeAsync result: Success={result.Success}, Error={result.ErrorMessage}");
 
             if (result.Success)
             {
@@ -740,25 +751,27 @@ public class WorktreeViewModel : INotifyPropertyChanged
             else
             {
                 // Check for common error patterns and provide friendly messages
-                var errorMessage = result.ErrorMessage ?? "Unknown error";
-                var folderStillExists = System.IO.Directory.Exists(worktreeItem.Path);
-                
+                string errorMessage = result.ErrorMessage ?? "Unknown error";
+                bool folderStillExists = Directory.Exists(worktreeItem.Path);
+
                 if (errorMessage.Contains("failed to delete") || errorMessage.Contains("Invalid argument"))
                 {
                     if (folderStillExists)
                     {
                         // Git removed the reference but couldn't delete the folder
-                        errorMessage = $"Git worktree reference removed, but the folder could not be deleted (files are in use).\n\nPlease manually delete: {worktreeItem.Path}";
-                        
+                        errorMessage =
+                            $"Git worktree reference removed, but the folder could not be deleted (files are in use).\n\nPlease manually delete: {worktreeItem.Path}";
+
                         // Still refresh the list since the git reference is gone
                         await RefreshAsync(cancellationToken);
                     }
                     else
                     {
-                        errorMessage = "Cannot remove worktree - files may be in use. Please close any open files or applications using this worktree.";
+                        errorMessage =
+                            "Cannot remove worktree - files may be in use. Please close any open files or applications using this worktree.";
                     }
                 }
-                else if (errorMessage.Contains("modified or untracked files") || 
+                else if (errorMessage.Contains("modified or untracked files") ||
                          errorMessage.Contains("contains modified or untracked files") ||
                          errorMessage.Contains("forcing it"))
                 {
@@ -766,16 +779,17 @@ public class WorktreeViewModel : INotifyPropertyChanged
                     if (!force && _extensibility != null)
                     {
                         var dialog = new DeleteConfirmationDialog(_extensibility);
-                        var confirmed = await dialog.ShowAsync(
+                        bool confirmed = await dialog.ShowAsync(
                             worktreeItem.DisplayPath, // User must type this name
-                            worktreeItem.Path, 
+                            worktreeItem.Path,
                             cancellationToken);
 
                         if (confirmed)
                         {
                             // Retry with force = true
-                            var forceRemoveResult = await RemoveWorktreeAsync(worktreeItem, force: true, cancellationToken);
-                            
+                            (bool Success, string? ErrorMessage) forceRemoveResult =
+                                await RemoveWorktreeAsync(worktreeItem, true, cancellationToken);
+
                             // If successful, return true (recursive call invalidates this frame's return but we return its result)
                             if (forceRemoveResult.Success)
                             {
@@ -794,24 +808,25 @@ public class WorktreeViewModel : INotifyPropertyChanged
                             return (false, null);
                         }
                     }
-                    
-                    errorMessage = "Worktree has uncommitted changes. Commit or stash your changes, or force remove using the dialog.";
+
+                    errorMessage =
+                        "Worktree has uncommitted changes. Commit or stash your changes, or force remove using the dialog.";
                 }
-                
+
                 ErrorMessage = errorMessage;
-                
+
                 // Show notification with details
                 await ShowErrorNotificationAsync(
-                    "Failed to remove worktree", 
-                    errorMessage, 
+                    "Failed to remove worktree",
+                    errorMessage,
                     cancellationToken);
-                
+
                 return (false, errorMessage);
             }
         }
         catch (Exception ex)
         {
-            var errorMsg = $"Error removing worktree: {ex.Message}";
+            string errorMsg = $"Error removing worktree: {ex.Message}";
             ErrorMessage = errorMsg;
             System.Diagnostics.Debug.WriteLine($"Exception in RemoveWorktreeAsync: {ex}");
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
@@ -841,21 +856,21 @@ public class WorktreeViewModel : INotifyPropertyChanged
     {
         if (string.IsNullOrEmpty(RepositoryPath))
         {
-            var errorMsg = "No repository is currently open";
+            string errorMsg = "No repository is currently open";
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
         }
 
         if (string.IsNullOrWhiteSpace(worktreePath))
         {
-            var errorMsg = "Worktree path cannot be empty";
+            string errorMsg = "Worktree path cannot be empty";
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
         }
 
         if (string.IsNullOrWhiteSpace(branchName))
         {
-            var errorMsg = "Branch name cannot be empty";
+            string errorMsg = "Branch name cannot be empty";
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
         }
@@ -865,7 +880,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
 
         try
         {
-            var result = await _gitService.AddWorktreeAsync(
+            GitCommandResult result = await _gitService.AddWorktreeAsync(
                 RepositoryPath,
                 worktreePath,
                 branchName,
@@ -882,19 +897,19 @@ public class WorktreeViewModel : INotifyPropertyChanged
             else
             {
                 ErrorMessage = result.ErrorMessage;
-                
+
                 // Show notification with git stderr details
                 await ShowErrorNotificationAsync(
-                    "Failed to add worktree", 
-                    result.ErrorMessage, 
+                    "Failed to add worktree",
+                    result.ErrorMessage,
                     cancellationToken);
-                
+
                 return (false, result.ErrorMessage);
             }
         }
         catch (Exception ex)
         {
-            var errorMsg = $"Error adding worktree: {ex.Message}";
+            string errorMsg = $"Error adding worktree: {ex.Message}";
             ErrorMessage = errorMsg;
             await ShowErrorNotificationAsync(errorMsg, cancellationToken);
             return (false, errorMsg);
@@ -916,17 +931,17 @@ public class WorktreeViewModel : INotifyPropertyChanged
             ErrorMessage = "No worktree selected";
             return;
         }
-        
+
         if (string.IsNullOrEmpty(worktreeItem.Path))
         {
             ErrorMessage = "Worktree path is empty";
             return;
         }
 
-        var path = worktreeItem.Path;
-        
+        string path = worktreeItem.Path;
+
         // Ensure the path exists
-        if (!System.IO.Directory.Exists(path))
+        if (!Directory.Exists(path))
         {
             ErrorMessage = $"Directory does not exist: {path}";
             return;
@@ -938,9 +953,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
             // Setting UseShellExecute = true and FileName = path opens the folder
             var psi = new System.Diagnostics.ProcessStartInfo
             {
-                FileName = path,
-                UseShellExecute = true,
-                Verb = "open"
+                FileName = path, UseShellExecute = true, Verb = "open"
             };
             System.Diagnostics.Process.Start(psi);
         }
@@ -962,17 +975,14 @@ public class WorktreeViewModel : INotifyPropertyChanged
 
         try
         {
-            var path = worktreeItem.Path;
-            
+            string path = worktreeItem.Path;
+
             // Use a thread with STA apartment state for clipboard access
-            var thread = new System.Threading.Thread(() =>
-            {
-                System.Windows.Clipboard.SetDataObject(path, true);
-            });
-            thread.SetApartmentState(System.Threading.ApartmentState.STA);
+            var thread = new Thread(() => { System.Windows.Clipboard.SetDataObject(path, true); });
+            thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
             thread.Join();
-            
+
             SuccessMessage = "Path copied to clipboard!";
         }
         catch (Exception ex)
@@ -990,9 +1000,9 @@ public class WorktreeViewModel : INotifyPropertyChanged
     {
         FilteredWorktrees.Clear();
 
-        var filter = SearchFilter?.Trim() ?? string.Empty;
-        
-        foreach (var worktree in Worktrees)
+        string filter = SearchFilter?.Trim() ?? string.Empty;
+
+        foreach (WorktreeItemViewModel worktree in Worktrees)
         {
             if (string.IsNullOrEmpty(filter) ||
                 worktree.DisplayPath.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
@@ -1012,12 +1022,12 @@ public class WorktreeViewModel : INotifyPropertyChanged
     /// </summary>
     /// <param name="worktree">The worktree model to map.</param>
     /// <returns>The mapped view model.</returns>
-    private WorktreeItemViewModel MapToViewModel(GitWorktreeManager.Models.Worktree worktree)
+    private WorktreeItemViewModel MapToViewModel(Models.Worktree worktree)
     {
         // Create a display-friendly path (just the folder name)
-        var displayPath = System.IO.Path.GetFileName(worktree.Path.TrimEnd(
-            System.IO.Path.DirectorySeparatorChar,
-            System.IO.Path.AltDirectorySeparatorChar));
+        string displayPath = Path.GetFileName(worktree.Path.TrimEnd(
+            Path.DirectorySeparatorChar,
+            Path.AltDirectorySeparatorChar));
 
         if (string.IsNullOrEmpty(displayPath))
         {
@@ -1025,7 +1035,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
         }
 
         // Abbreviate the commit SHA for display (first 7 characters)
-        var shortCommit = worktree.HeadCommit.Length > 7
+        string shortCommit = worktree.HeadCommit.Length > 7
             ? worktree.HeadCommit[..7]
             : worktree.HeadCommit;
 
@@ -1066,10 +1076,8 @@ public class WorktreeViewModel : INotifyPropertyChanged
     /// Raises the PropertyChanged event.
     /// </summary>
     /// <param name="propertyName">The name of the property that changed.</param>
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
+    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
 
     /// <summary>
     /// Shows an error notification to the user via the notification service.
@@ -1090,7 +1098,8 @@ public class WorktreeViewModel : INotifyPropertyChanged
     /// <param name="message">The error message to display.</param>
     /// <param name="details">Additional details such as git stderr output.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
-    private async Task ShowErrorNotificationAsync(string message, string? details, CancellationToken cancellationToken = default)
+    private async Task ShowErrorNotificationAsync(string message, string? details,
+        CancellationToken cancellationToken = default)
     {
         if (_notificationService != null)
         {
@@ -1104,15 +1113,17 @@ public class WorktreeViewModel : INotifyPropertyChanged
     private bool IsCurrentWorktree(string worktreePath)
     {
         if (string.IsNullOrEmpty(RepositoryPath) || string.IsNullOrEmpty(worktreePath))
+        {
             return false;
+        }
 
         // Normalize paths for comparison
-        var normalizedRepo = System.IO.Path.GetFullPath(RepositoryPath).TrimEnd(
-            System.IO.Path.DirectorySeparatorChar, 
-            System.IO.Path.AltDirectorySeparatorChar);
-        var normalizedWorktree = System.IO.Path.GetFullPath(worktreePath).TrimEnd(
-            System.IO.Path.DirectorySeparatorChar, 
-            System.IO.Path.AltDirectorySeparatorChar);
+        string normalizedRepo = Path.GetFullPath(RepositoryPath).TrimEnd(
+            Path.DirectorySeparatorChar,
+            Path.AltDirectorySeparatorChar);
+        string normalizedWorktree = Path.GetFullPath(worktreePath).TrimEnd(
+            Path.DirectorySeparatorChar,
+            Path.AltDirectorySeparatorChar);
 
         return string.Equals(normalizedRepo, normalizedWorktree, StringComparison.OrdinalIgnoreCase);
     }

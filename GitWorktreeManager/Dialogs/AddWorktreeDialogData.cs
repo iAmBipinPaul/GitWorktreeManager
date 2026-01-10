@@ -58,11 +58,13 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
         get
         {
             if (string.IsNullOrWhiteSpace(BranchName))
+            {
                 return string.Empty;
-            
-            var sanitized = SanitizeBranchNameInput(BranchName);
-            return sanitized != BranchName 
-                ? $"Will create: {sanitized}" 
+            }
+
+            string sanitized = SanitizeBranchNameInput(BranchName);
+            return sanitized != BranchName
+                ? $"Will create: {sanitized}"
                 : string.Empty;
         }
     }
@@ -120,8 +122,8 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
     /// Dynamic tooltip for the branch selector dropdown.
     /// </summary>
     [DataMember]
-    public string BranchSelectorTooltip => CreateNewBranch 
-        ? "Select the branch to base your new branch on" 
+    public string BranchSelectorTooltip => CreateNewBranch
+        ? "Select the branch to base your new branch on"
         : "Select an existing branch to checkout";
 
     /// <summary>
@@ -205,23 +207,24 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
         }
 
         // Use BranchName when creating new branch, SelectedBranch when using existing
-        var branchForPath = CreateNewBranch ? BranchName : SelectedBranch;
-        
+        string? branchForPath = CreateNewBranch ? BranchName : SelectedBranch;
+
         if (string.IsNullOrWhiteSpace(branchForPath))
         {
             return string.Empty;
         }
 
-        var repoParent = Path.GetDirectoryName(RepositoryPath);
+        string? repoParent = Path.GetDirectoryName(RepositoryPath);
         if (string.IsNullOrEmpty(repoParent))
         {
             return string.Empty;
         }
 
-        var repoName = Path.GetFileName(RepositoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-        
+        string repoName =
+            Path.GetFileName(RepositoryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+
         // Sanitize for both path and branch name
-        var safeBranchName = SanitizeBranchName(SanitizeBranchNameInput(branchForPath));
+        string safeBranchName = SanitizeBranchName(SanitizeBranchNameInput(branchForPath));
 
         return Path.Combine(repoParent, $"{repoName}-{safeBranchName}");
     }
@@ -238,6 +241,7 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
             // Sanitize the branch name when actually using it
             return SanitizeBranchNameInput(BranchName);
         }
+
         return SelectedBranch ?? string.Empty;
     }
 
@@ -261,14 +265,16 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
     private static string SanitizeBranchNameInput(string input)
     {
         if (string.IsNullOrEmpty(input))
+        {
             return input;
+        }
 
         var result = new System.Text.StringBuilder(input.Length);
-        foreach (var c in input)
+        foreach (char c in input)
         {
             // Replace spaces and invalid git branch characters with dash
-            if (c == ' ' || c == '\\' || c == ':' || c == '*' || c == '?' || 
-                c == '"' || c == '<' || c == '>' || c == '|' || c == '~' || 
+            if (c == ' ' || c == '\\' || c == ':' || c == '*' || c == '?' ||
+                c == '"' || c == '<' || c == '>' || c == '|' || c == '~' ||
                 c == '^' || c == '[' || c == '@' || char.IsControl(c))
             {
                 result.Append('-');
@@ -278,6 +284,7 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
                 result.Append(c);
             }
         }
+
         return result.ToString();
     }
 
@@ -296,7 +303,7 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
                 return;
             }
 
-            var sanitized = SanitizeBranchNameInput(BranchName);
+            string sanitized = SanitizeBranchNameInput(BranchName);
             if (sanitized.StartsWith("-") || sanitized.StartsWith("."))
             {
                 ValidationError = "Branch name cannot start with '-' or '.'.";
@@ -310,7 +317,7 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
                 IsValid = false;
                 return;
             }
-            
+
             ValidationError = null;
             IsValid = true;
         }
@@ -332,15 +339,15 @@ public class AddWorktreeDialogData : INotifyPropertyChanged
     protected bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {
         if (EqualityComparer<T>.Default.Equals(field, value))
+        {
             return false;
+        }
 
         field = value;
         OnPropertyChanged(propertyName);
         return true;
     }
 
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
+    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
 }

@@ -21,15 +21,17 @@ public class ShowWorktreeToolWindowCommand : Command
     /// <summary>
     /// Gets the configuration for this command.
     /// </summary>
-    public override CommandConfiguration CommandConfiguration => new("%GitWorktreeManager.ShowWorktreeToolWindowCommand.DisplayName%")
-    {
-        // Place the command in View > Other Windows AND Extensions menu
-        Placements = [
-            CommandPlacement.KnownPlacements.ViewOtherWindowsMenu,
-            CommandPlacement.KnownPlacements.ExtensionsMenu
-        ],
-        Icon = new(ImageMoniker.KnownValues.GitRepository, IconSettings.IconAndText),
-    };
+    public override CommandConfiguration CommandConfiguration =>
+        new("%GitWorktreeManager.ShowWorktreeToolWindowCommand.DisplayName%")
+        {
+            // Place the command in View > Other Windows AND Extensions menu
+            Placements =
+            [
+                CommandPlacement.KnownPlacements.ViewOtherWindowsMenu,
+                CommandPlacement.KnownPlacements.ExtensionsMenu
+            ],
+            Icon = new CommandIconConfiguration(ImageMoniker.KnownValues.GitRepository, IconSettings.IconAndText)
+        };
 
     /// <summary>
     /// Executes the command to show the Worktree Manager tool window.
@@ -37,8 +39,6 @@ public class ShowWorktreeToolWindowCommand : Command
     /// <param name="context">The command execution context.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>A task representing the async operation.</returns>
-    public override async Task ExecuteCommandAsync(IClientContext context, CancellationToken cancellationToken)
-    {
-        await Extensibility.Shell().ShowToolWindowAsync<WorktreeToolWindow>(activate: true, cancellationToken);
-    }
+    public override async Task ExecuteCommandAsync(IClientContext context, CancellationToken cancellationToken) =>
+        await Extensibility.Shell().ShowToolWindowAsync<WorktreeToolWindow>(true, cancellationToken);
 }

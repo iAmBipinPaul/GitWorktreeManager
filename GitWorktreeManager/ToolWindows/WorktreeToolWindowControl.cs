@@ -14,7 +14,7 @@ internal class WorktreeToolWindowControl : RemoteUserControl
     /// </summary>
     /// <param name="viewModel">The view model providing data and commands for the UI.</param>
     public WorktreeToolWindowControl(WorktreeViewModel viewModel)
-        : base(dataContext: viewModel)
+        : base(viewModel)
     {
     }
 }

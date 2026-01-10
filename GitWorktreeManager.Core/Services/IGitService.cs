@@ -1,6 +1,6 @@
 namespace GitWorktreeManager.Services;
 
-using GitWorktreeManager.Models;
+using Models;
 
 public record WorktreeStatus(int ModifiedCount, int UntrackedCount, int Incoming, int Outgoing);
 
@@ -15,7 +15,7 @@ public interface IGitService
     /// <param name="repositoryPath">The path to the Git repository.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>A result containing the list of worktrees or an error.</returns>
-    Task<GitCommandResult<IReadOnlyList<Worktree>>> GetWorktreesAsync(
+    public Task<GitCommandResult<IReadOnlyList<Worktree>>> GetWorktreesAsync(
         string repositoryPath,
         CancellationToken cancellationToken = default);
 
@@ -29,7 +29,7 @@ public interface IGitService
     /// <param name="baseBranch">The base branch to create the new branch from (only used when createBranch is true).</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>A result indicating success or failure.</returns>
-    Task<GitCommandResult> AddWorktreeAsync(
+    public Task<GitCommandResult> AddWorktreeAsync(
         string repositoryPath,
         string worktreePath,
         string branchName,
@@ -45,7 +45,7 @@ public interface IGitService
     /// <param name="force">If true, forces removal even with uncommitted changes.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>A result indicating success or failure.</returns>
-    Task<GitCommandResult> RemoveWorktreeAsync(
+    public Task<GitCommandResult> RemoveWorktreeAsync(
         string repositoryPath,
         string worktreePath,
         bool force = false,
@@ -57,7 +57,7 @@ public interface IGitService
     /// <param name="path">A path within the repository.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>The repository root path, or null if not a Git repository.</returns>
-    Task<string?> GetRepositoryRootAsync(
+    public Task<string?> GetRepositoryRootAsync(
         string path,
         CancellationToken cancellationToken = default);
 
@@ -66,7 +66,7 @@ public interface IGitService
     /// </summary>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>True if Git is installed and accessible, false otherwise.</returns>
-    Task<bool> IsGitInstalledAsync(
+    public Task<bool> IsGitInstalledAsync(
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -75,7 +75,7 @@ public interface IGitService
     /// <param name="repositoryPath">The path to the Git repository.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>A result containing the list of branch names or an error.</returns>
-    Task<GitCommandResult<IReadOnlyList<string>>> GetBranchesAsync(
+    public Task<GitCommandResult<IReadOnlyList<string>>> GetBranchesAsync(
         string repositoryPath,
         CancellationToken cancellationToken = default);
 
@@ -86,6 +86,6 @@ public interface IGitService
     /// <param name="branchName">The branch name.</param>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>The status of the worktree.</returns>
-    Task<WorktreeStatus> GetWorktreeStatusAsync(string worktreePath, string branchName, CancellationToken cancellationToken = default);
+    public Task<WorktreeStatus> GetWorktreeStatusAsync(string worktreePath, string branchName,
+        CancellationToken cancellationToken = default);
 }
-

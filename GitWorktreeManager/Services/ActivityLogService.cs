@@ -23,7 +23,7 @@ public class ActivityLogService : ILoggerService
     /// <inheritdoc />
     public void Log(LogLevel level, string message)
     {
-        var traceEventType = level switch
+        TraceEventType traceEventType = level switch
         {
             LogLevel.Information => TraceEventType.Information,
             LogLevel.Warning => TraceEventType.Warning,
@@ -31,7 +31,7 @@ public class ActivityLogService : ILoggerService
             _ => TraceEventType.Information
         };
 
-        var formattedMessage = FormatMessage(level, message);
+        string formattedMessage = FormatMessage(level, message);
         _traceSource.TraceEvent(traceEventType, 0, formattedMessage);
 
         // Also write to debug output for development
@@ -39,27 +39,18 @@ public class ActivityLogService : ILoggerService
     }
 
     /// <inheritdoc />
-    public void LogInformation(string message)
-    {
-        Log(LogLevel.Information, message);
-    }
+    public void LogInformation(string message) => Log(LogLevel.Information, message);
 
     /// <inheritdoc />
-    public void LogWarning(string message)
-    {
-        Log(LogLevel.Warning, message);
-    }
+    public void LogWarning(string message) => Log(LogLevel.Warning, message);
 
     /// <inheritdoc />
-    public void LogError(string message)
-    {
-        Log(LogLevel.Error, message);
-    }
+    public void LogError(string message) => Log(LogLevel.Error, message);
 
     /// <inheritdoc />
     public void LogException(Exception exception, string? message = null)
     {
-        var fullMessage = BuildExceptionMessage(exception, message);
+        string fullMessage = BuildExceptionMessage(exception, message);
         Log(LogLevel.Error, fullMessage);
     }
 
@@ -68,8 +59,8 @@ public class ActivityLogService : ILoggerService
     /// </summary>
     private static string FormatMessage(LogLevel level, string message)
     {
-        var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-        var levelStr = level switch
+        string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+        string levelStr = level switch
         {
             LogLevel.Information => "INFO",
             LogLevel.Warning => "WARN",
@@ -85,7 +76,7 @@ public class ActivityLogService : ILoggerService
     /// </summary>
     private static string BuildExceptionMessage(Exception exception, string? message)
     {
-        var fullMessage = string.IsNullOrEmpty(message)
+        string fullMessage = string.IsNullOrEmpty(message)
             ? $"Exception: {exception.Message}"
             : $"{message} | Exception: {exception.Message}";
 

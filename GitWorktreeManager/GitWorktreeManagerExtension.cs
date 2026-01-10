@@ -27,12 +27,12 @@ public class GitWorktreeManagerExtension : Extension
     /// <inheritdoc />
     public override ExtensionConfiguration ExtensionConfiguration => new()
     {
-        Metadata = new(
-            id: "IAmBipinPaul.GitWorktreeManager.e7f8a9b0-c1d2-4e3f-5a6b-7c8d9e0f1a2b",
-            version: ExtensionAssemblyVersion,
-            publisherName: "Bipin Paul",
-            displayName: "Git Worktree Manager",
-            description: "Manage Git worktrees from within Visual Studio. List, add, remove, and open Git worktrees directly from the IDE without leaving Visual Studio.")
+        Metadata = new ExtensionMetadata(
+            "IAmBipinPaul.GitWorktreeManager.e7f8a9b0-c1d2-4e3f-5a6b-7c8d9e0f1a2b",
+            ExtensionAssemblyVersion,
+            "Bipin Paul",
+            "Git Worktree Manager",
+            "Manage Git worktrees from within Visual Studio. List, add, remove, and open Git worktrees directly from the IDE without leaving Visual Studio.")
     };
 
     /// <summary>
@@ -51,11 +51,12 @@ public class GitWorktreeManagerExtension : Extension
         // Register Git service with logger dependency
         serviceCollection.AddSingleton<IGitService>(sp =>
         {
-            var logger = sp.GetService<ILoggerService>();
+            ILoggerService? logger = sp.GetService<ILoggerService>();
             return new GitService(logger);
         });
 
-        _logger.LogInformation($"Git Worktree Manager extension initialized successfully (version: {ExtensionAssemblyVersion})");
+        _logger.LogInformation(
+            $"Git Worktree Manager extension initialized successfully (version: {ExtensionAssemblyVersion})");
     }
 
     /// <summary>
