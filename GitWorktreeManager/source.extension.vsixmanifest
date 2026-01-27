@@ -1,67 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
-  <Metadata>
-    <Identity Id="IAmBipinPaul.GitWorktreeManager.e7f8a9b0-c1d2-4e3f-5a6b-7c8d9e0f1a2b" Version="1.0.8" Language="en-US" Publisher="Bipin Paul" />
-    <DisplayName>Git Worktree Manager</DisplayName>
-    <Description xml:space="preserve">Manage Git worktrees from within Visual Studio. List, add, remove, and open Git worktrees directly from the IDE without leaving Visual Studio. Features include:
+    <Metadata>
+        <Identity Id="IAmBipinPaul.GitWorktreeManager.e7f8a9b0-c1d2-4e3f-5a6b-7c8d9e0f1a2b" Version="1.0.9" Language="en-US" Publisher="Bipin Paul" />
+        <DisplayName>Git Worktree Manager</DisplayName>
+        <Description xml:space="preserve">Manage Git worktrees from within Visual Studio. List, add, remove, and open Git worktrees directly from the IDE without leaving Visual Studio. Features include:
 • View all worktrees for your repository in a dedicated tool window
 • Create new worktrees with branch selection
 • Remove worktrees with safety checks
 • Open worktrees in new Visual Studio instances
 • Automatic refresh when switching solutions</Description>
-    <MoreInfo>https://github.com/iAmBipinPaul/GitWorktreeManager</MoreInfo>
-    <License>LICENSE.txt</License>
-    <Icon>Resources\icon.png</Icon>
-    <PreviewImage>Resources\preview.png</PreviewImage>
-    <Tags>git, worktree, source control, productivity, version control, branch management</Tags>
-    <ReleaseNotes>
+        <MoreInfo>https://github.com/iAmBipinPaul/GitWorktreeManager</MoreInfo>
+        <License>LICENSE.txt</License>
+        <Icon>Resources\icon.png</Icon>
+        <PreviewImage>Resources\preview.png</PreviewImage>
+        <Tags>git, worktree, source control, productivity, version control, branch management</Tags>
+        <ReleaseNotes>
+            1.0.9:
+            - support for slnx file format in addition to sln files when opening worktrees in new Visual Studio instances.
+            1.0.8:
+            - Fixed NullReferenceException on first install when loading tool window.
+            - Added "Local only" status for branches without remote tracking.
+            - Improved error handling during extension initialization.
 
-      1.0.8:
-  - Fixed NullReferenceException on first install when loading tool window.
-  - Added "Local only" status for branches without remote tracking.
-  - Improved error handling during extension initialization.
+            1.0.7:
+            - Fixed status fetching for the main worktree.
+            - Fixed untracked changes detection to show up everywhere.
+            - Reduced status timeout to prevent UI hangs on large repositories.
 
-      1.0.7:
-      - Fixed status fetching for the main worktree.
-      - Fixed untracked changes detection to show up everywhere.
-      - Reduced status timeout to prevent UI hangs on large repositories.
+            1.0.6:
+            - Added detection for untracked files in worktree status.
+            - Improved status display with dedicated counts for modified and untracked files.
 
-      1.0.6:
-      - Added detection for untracked files in worktree status.
-      - Improved status display with dedicated counts for modified and untracked files.
+            1.0.5:
+            - Added asynchronous Git status fetching (uncommitted changes, ahead/behind counts).
+            - Two-phase loading for better UI responsiveness.
+            - Performance improvements for status updates.
 
-      1.0.5:
-      - Added asynchronous Git status fetching (uncommitted changes, ahead/behind counts).
-      - Two-phase loading for better UI responsiveness.
-      - Performance improvements for status updates.
+            1.0.4:
+            - Added improved safety dialog for Force Remove worktree operations.
+            - Fixed minor UI bugs.
 
-      1.0.4:
-      - Added improved safety dialog for Force Remove worktree operations.
-      - Fixed minor UI bugs.
-      
-      Initial release:
-      Initial release of Git Worktree Manager extension.
-    </ReleaseNotes>
-  </Metadata>
-  <Installation>
-    <!-- Target Visual Studio 2022 version 17.14 and later -->
-    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.14,18.0)">
-      <ProductArchitecture>amd64</ProductArchitecture>
-    </InstallationTarget>
-    <InstallationTarget Id="Microsoft.VisualStudio.Professional" Version="[17.14,18.0)">
-      <ProductArchitecture>amd64</ProductArchitecture>
-    </InstallationTarget>
-    <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.14,18.0)">
-      <ProductArchitecture>amd64</ProductArchitecture>
-    </InstallationTarget>
-  </Installation>
-  <Dependencies>
-    <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.8,)" />
-  </Dependencies>
-  <Prerequisites>
-    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.14,18.0)" DisplayName="Visual Studio core editor" />
-  </Prerequisites>
-  <Assets>
-    <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
-  </Assets>
+            Initial release:
+            Initial release of Git Worktree Manager extension.
+        </ReleaseNotes>
+    </Metadata>
+    <Installation>
+        <!-- Target Visual Studio 2022 version 17.14 and later -->
+        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.14,18.0)">
+            <ProductArchitecture>amd64</ProductArchitecture>
+        </InstallationTarget>
+        <InstallationTarget Id="Microsoft.VisualStudio.Professional" Version="[17.14,18.0)">
+            <ProductArchitecture>amd64</ProductArchitecture>
+        </InstallationTarget>
+        <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.14,18.0)">
+            <ProductArchitecture>amd64</ProductArchitecture>
+        </InstallationTarget>
+    </Installation>
+    <Dependencies>
+        <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.8,)" />
+    </Dependencies>
+    <Prerequisites>
+        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.14,18.0)" DisplayName="Visual Studio core editor" />
+    </Prerequisites>
+    <Assets>
+        <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
+    </Assets>
 </PackageManifest>
