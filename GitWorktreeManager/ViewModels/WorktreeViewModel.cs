@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using System.Linq;
 using GitWorktreeManager.Dialogs;
 using GitWorktreeManager.Models;
 using GitWorktreeManager.Services;
@@ -564,7 +565,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
         {
             return "Local only";
         }
-        
+
         var parts = new List<string>();
         if (status.Incoming > 0)
         {
@@ -606,10 +607,10 @@ public class WorktreeViewModel : INotifyPropertyChanged
         try
         {
             // Find solution files in the worktree path
-            string[] solutionFiles = Directory.GetFiles(
-                worktreeItem.Path,
-                "*.sln",
-                SearchOption.TopDirectoryOnly);
+            string[] solutionFiles = Directory
+                .GetFiles(worktreeItem.Path, "*.sln", SearchOption.TopDirectoryOnly)
+                .Concat(Directory.GetFiles(worktreeItem.Path, "*.slnx", SearchOption.TopDirectoryOnly))
+                .ToArray();
 
             string argument;
 
@@ -1028,7 +1029,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
     /// </summary>
     /// <param name="worktree">The worktree model to map.</param>
     /// <returns>The mapped view model.</returns>
-    private WorktreeItemViewModel MapToViewModel(Models.Worktree worktree)
+    private WorktreeItemViewModel MapToViewModel(Worktree worktree)
     {
         // Create a display-friendly path (just the folder name)
         string displayPath = Path.GetFileName(worktree.Path.TrimEnd(
