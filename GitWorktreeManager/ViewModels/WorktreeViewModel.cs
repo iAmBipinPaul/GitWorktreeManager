@@ -409,6 +409,10 @@ public class WorktreeViewModel : INotifyPropertyChanged
     /// Refreshes the worktree list from the Git repository.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
+    /// <summary>
+    /// Refreshes the worktree list from the Git repository.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token for the operation.</param>
     public async Task RefreshAsync(CancellationToken cancellationToken = default)
     {
         // Cancel any previous enrichment
@@ -453,9 +457,13 @@ public class WorktreeViewModel : INotifyPropertyChanged
                 HasRepository = true;
                 Worktrees.Clear();
 
+                // Compute shortest unique paths for all worktrees
+                Dictionary<string, string> displayPaths = ComputeShortestUniquePaths(
+                    result.Data.Select(w => w.Path).ToList());
+
                 foreach (Worktree worktree in result.Data)
                 {
-                    WorktreeItemViewModel viewModel = MapToViewModel(worktree);
+                    WorktreeItemViewModel viewModel = MapToViewModel(worktree, displayPaths);
                     // Initialize new properties
                     viewModel.IsLoadingStatus = true;
                     viewModel.StatusSummary = "Loading status...";
@@ -503,6 +511,7 @@ public class WorktreeViewModel : INotifyPropertyChanged
             IsLoading = false;
         }
     }
+
 
     private async Task EnrichWorktreesAsync(List<WorktreeItemViewModel> items, CancellationToken ct)
     {
@@ -1025,20 +1034,114 @@ public class WorktreeViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// Computes the shortest unique path for each worktree by removing common prefixes.
+    /// </summary>
+    /// <param name="paths">List of all worktree paths.</param>
+    /// <returns>Dictionary mapping full path to shortest unique display path.</returns>
+    private Dictionary<string, string> ComputeShortestUniquePaths(List<string> paths)
+    {
+        var result = new Dictionary<string, string>();
+
+        if (paths.Count == 0)
+        {
+            return result;
+        }
+
+        if (paths.Count == 1)
+        {
+            // Single worktree - just show the folder name
+            string path = paths[0];
+            string displayPath = Path.GetFileName(path.TrimEnd(
+                Path.DirectorySeparatorChar,
+                Path.AltDirectorySeparatorChar));
+            result[path] = string.IsNullOrEmpty(displayPath) ? path : displayPath;
+            return result;
+        }
+
+        // Normalize all paths and split into segments
+        var pathSegments = new List<(string OriginalPath, string NormalizedPath, string[] Segments)>();
+        foreach (string path in paths)
+        {
+            string normalized = Path.GetFullPath(path).TrimEnd(
+                Path.DirectorySeparatorChar,
+                Path.AltDirectorySeparatorChar);
+            string[] segments = normalized.Split(
+                new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
+                StringSplitOptions.RemoveEmptyEntries);
+            pathSegments.Add((path, normalized, segments));
+        }
+
+        // Find the common prefix length
+        int commonPrefixLength = 0;
+        if (pathSegments.Count > 1)
+        {
+            int minSegments = pathSegments.Min(p => p.Segments.Length);
+            for (int i = 0; i < minSegments; i++)
+            {
+                string segment = pathSegments[0].Segments[i];
+                if (pathSegments.All(p => string.Equals(p.Segments[i], segment, StringComparison.OrdinalIgnoreCase)))
+                {
+                    commonPrefixLength = i + 1;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+
+        // Generate display paths by removing common prefix
+        foreach (var (originalPath, normalizedPath, segments) in pathSegments)
+        {
+            string displayPath;
+            
+            if (commonPrefixLength >= segments.Length)
+            {
+                // All segments are common - just show the last segment
+                displayPath = segments[^1];
+            }
+            else if (commonPrefixLength == segments.Length - 1)
+            {
+                // Only the last segment is unique - show just that
+                displayPath = segments[^1];
+            }
+            else
+            {
+                // Show segments after the common prefix
+                string[] uniqueSegments = segments[commonPrefixLength..];
+                displayPath = string.Join(Path.DirectorySeparatorChar.ToString(), uniqueSegments);
+            }
+
+            result[originalPath] = displayPath;
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Maps a Worktree model to a WorktreeItemViewModel.
     /// </summary>
     /// <param name="worktree">The worktree model to map.</param>
+    /// <param name="displayPaths">Dictionary of precomputed display paths.</param>
     /// <returns>The mapped view model.</returns>
-    private WorktreeItemViewModel MapToViewModel(Worktree worktree)
+    private WorktreeItemViewModel MapToViewModel(Worktree worktree, Dictionary<string, string> displayPaths)
     {
-        // Create a display-friendly path (just the folder name)
-        string displayPath = Path.GetFileName(worktree.Path.TrimEnd(
-            Path.DirectorySeparatorChar,
-            Path.AltDirectorySeparatorChar));
-
-        if (string.IsNullOrEmpty(displayPath))
+        // Use precomputed display path if available, otherwise fall back to folder name
+        string displayPath;
+        if (displayPaths.TryGetValue(worktree.Path, out string? precomputedPath))
         {
-            displayPath = worktree.Path;
+            displayPath = precomputedPath;
+        }
+        else
+        {
+            displayPath = Path.GetFileName(worktree.Path.TrimEnd(
+                Path.DirectorySeparatorChar,
+                Path.AltDirectorySeparatorChar));
+
+            if (string.IsNullOrEmpty(displayPath))
+            {
+                displayPath = worktree.Path;
+            }
         }
 
         // Abbreviate the commit SHA for display (first 7 characters)
