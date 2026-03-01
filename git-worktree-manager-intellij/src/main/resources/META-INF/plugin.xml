@@ -1,0 +1,25 @@
+<idea-plugin>
+    <id>com.iambipinpaul.gitworktreemanager</id>
+    <name>Git Worktree Manager</name>
+    <vendor>iambipinpaul</vendor>
+    <description>Manage Git worktrees from JetBrains IDEs.</description>
+    <depends>com.intellij.modules.platform</depends>
+    <depends>Git4Idea</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Git Worktrees"
+                    anchor="left"
+                    type="docked"
+                    factoryClass="com.iambipinpaul.gitworktreemanager.toolwindow.WorktreeToolWindowFactory"/>
+        <notificationGroup id="Git Worktree Manager" displayType="BALLOON" isLogByDefault="true"/>
+    </extensions>
+
+    <actions>
+        <action id="GitWorktreeManager.ShowToolWindow"
+                class="com.iambipinpaul.gitworktreemanager.actions.ShowWorktreeManagerAction"
+                text="Git Worktree Manager"
+                description="Show Git Worktree Manager tool window">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>
