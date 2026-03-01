@@ -1,0 +1,43 @@
+<idea-plugin>
+    <id>com.iambipinpaul.gitworktreemanager</id>
+    <name>Git Worktree Hub</name>
+    <vendor url="https://github.com/iAmBipinPaul">Bipin Paul</vendor>
+    <description><![CDATA[
+Manage Git worktrees from within JetBrains IDEs. List, add, remove, and open Git worktrees directly from the IDE without leaving your workflow. Features include:
+<ul>
+<li>View all worktrees for your repository in a dedicated tool window</li>
+<li>Create new worktrees with branch selection</li>
+<li>Remove worktrees with safety checks</li>
+<li>Open worktrees in new IDE windows</li>
+<li>Automatic refresh when switching projects</li>
+</ul>
+]]></description>
+    <change-notes><![CDATA[
+1.0.10:
+<ul>
+<li>Improved worktree display names to show shortest unique path instead of just folder name.</li>
+<li>Worktrees with common suffixes (for example, <code>/src</code>) now display distinguishing parent folders.</li>
+</ul>
+]]></change-notes>
+    <depends>com.intellij.modules.platform</depends>
+    <depends>Git4Idea</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Git Worktrees"
+                    anchor="left"
+                    type="docked"
+                    icon="/icons/toolWindow.svg"
+                    factoryClass="com.iambipinpaul.gitworktreemanager.toolwindow.WorktreeToolWindowFactory"/>
+        <notificationGroup id="Git Worktree Manager" displayType="BALLOON" isLogByDefault="true"/>
+    </extensions>
+
+    <actions>
+        <action id="GitWorktreeManager.ShowToolWindow"
+                class="com.iambipinpaul.gitworktreemanager.actions.ShowWorktreeManagerAction"
+                text="Git Worktree Manager"
+                icon="/icons/toolWindow.svg"
+                description="Show Git Worktree Manager tool window">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>

@@ -1,0 +1,7 @@
+# JetBrains / Kotlin (IntelliJ plugin)
+.idea/
+*.iml
+.gradle/
+build/
+.kotlin/
+.intellijPlatform/
