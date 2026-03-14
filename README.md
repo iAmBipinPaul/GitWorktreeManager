@@ -6,6 +6,13 @@
 
 A Visual Studio extension that provides an intuitive interface for managing Git worktrees directly within the IDE.
 
+## 📦 Install
+
+| IDE | Marketplace | Description |
+|-----|-------------|-------------|
+| **Visual Studio** | [Git Worktree Manager](https://marketplace.visualstudio.com/items?itemName=IAmBipinPaul.GitWorktreeManager) | Extension for Visual Studio 2022 (17.14+) |
+| **JetBrains IDEs** | [Git Worktree Hub](https://plugins.jetbrains.com/plugin/30431-git-worktree-hub) | Plugin for IntelliJ IDEA, Rider, WebStorm, and other JetBrains IDEs |
+
 ![Git Worktree Manager Overview](docs/screenshots/Overview.png)
 
 ## 📍 Easy Access
