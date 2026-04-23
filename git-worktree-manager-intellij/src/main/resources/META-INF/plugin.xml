@@ -26,7 +26,7 @@ Manage Git worktrees from within JetBrains IDEs. List, add, remove, and open Git
         <toolWindow id="Git Worktrees"
                     anchor="left"
                     type="docked"
-                    icon="/icons/toolWindow.svg"
+                    icon="com.iambipinpaul.gitworktreemanager.GitWorktreeManagerIcons.ToolWindow"
                     factoryClass="com.iambipinpaul.gitworktreemanager.toolwindow.WorktreeToolWindowFactory"/>
         <notificationGroup id="Git Worktree Manager" displayType="BALLOON" isLogByDefault="true"/>
     </extensions>
@@ -35,7 +35,7 @@ Manage Git worktrees from within JetBrains IDEs. List, add, remove, and open Git
         <action id="GitWorktreeManager.ShowToolWindow"
                 class="com.iambipinpaul.gitworktreemanager.actions.ShowWorktreeManagerAction"
                 text="Git Worktree Manager"
-                icon="/icons/toolWindow.svg"
+                icon="com.iambipinpaul.gitworktreemanager.GitWorktreeManagerIcons.Action"
                 description="Show Git Worktree Manager tool window">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>
