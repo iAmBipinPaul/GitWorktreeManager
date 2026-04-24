@@ -1,23 +1,15 @@
 package com.iambipinpaul.gitworktreemanager
 
-import com.intellij.ui.IconManager
+import com.intellij.openapi.util.IconLoader
 import javax.swing.Icon
 
 object GitWorktreeManagerIcons {
-    private val classLoader = GitWorktreeManagerIcons::class.java.classLoader
-
-    private fun load(path: String, expUiPath: String? = null, flags: Int = 2): Icon {
-        val cacheKey = (path + (expUiPath ?: "")).hashCode()
-        return if (expUiPath == null) {
-            IconManager.getInstance().loadRasterizedIcon(path, classLoader, cacheKey, flags)
-        } else {
-            IconManager.getInstance().loadRasterizedIcon(path, expUiPath, classLoader, cacheKey, flags)
-        }
-    }
+    private fun load(path: String): Icon =
+        IconLoader.getIcon(path, GitWorktreeManagerIcons::class.java)
 
     @JvmField
-    val ToolWindow: Icon = load("icons/toolWindow.svg", "icons/expui/toolwindow/gitWorktrees.svg")
+    val ToolWindow: Icon = load("/icons/toolWindow.svg")
 
     @JvmField
-    val Action: Icon = load("icons/action.svg", "icons/expui/action.svg")
+    val Action: Icon = load("/icons/action.svg")
 }
