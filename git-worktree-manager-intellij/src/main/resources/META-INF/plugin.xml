@@ -13,6 +13,11 @@ Manage Git worktrees from within JetBrains IDEs. List, add, remove, and open Git
 </ul>
 ]]></description>
     <change-notes><![CDATA[
+1.0.18:
+<ul>
+<li>Updated the action and tool window icons to match the plugin logo silhouette while preserving IntelliJ theme compatibility.</li>
+</ul>
+
 1.0.10:
 <ul>
 <li>Improved worktree display names to show shortest unique path instead of just folder name.</li>
