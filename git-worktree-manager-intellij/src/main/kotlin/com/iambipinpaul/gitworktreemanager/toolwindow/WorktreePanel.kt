@@ -49,8 +49,13 @@ class WorktreePanel(private val project: Project) : JBPanel<WorktreePanel>(Borde
     private val notifications = NotificationService(project)
     private val searchField = SearchTextField()
     private val loadingIcon = AsyncProcessIcon("GitWorktrees.Loading")
-    private val listPanel = JPanel()
+    private val listPanel = JBPanel<JBPanel<*>>()
+    private val scrollPane = JBScrollPane(listPanel)
     private val emptyStateLabel = JBLabel()
+
+    // JBColor.lazy defers resolution to paint time so the color tracks L&F changes.
+    private val panelBackground = JBColor.lazy { UIUtil.getPanelBackground() }
+    private val cardBackground = JBColor.lazy { UIUtil.getListBackground() }
 
     private var repositoryRoot: String? = null
     private var allWorktrees: List<Worktree> = emptyList()
@@ -85,9 +90,10 @@ class WorktreePanel(private val project: Project) : JBPanel<WorktreePanel>(Borde
         listPanel.layout = BoxLayout(listPanel, BoxLayout.Y_AXIS)
         listPanel.border = JBUI.Borders.empty(6)
         listPanel.isOpaque = true
-        listPanel.background = UIUtil.getPanelBackground()
+        listPanel.background = panelBackground
+        background = panelBackground
 
-        emptyStateLabel.foreground = UIUtil.getContextHelpForeground()
+        emptyStateLabel.foreground = JBColor.lazy { UIUtil.getContextHelpForeground() }
         emptyStateLabel.font = JBUI.Fonts.smallFont()
         emptyStateLabel.border = JBUI.Borders.empty(12)
         emptyStateLabel.alignmentX = Component.LEFT_ALIGNMENT
@@ -113,9 +119,8 @@ class WorktreePanel(private val project: Project) : JBPanel<WorktreePanel>(Borde
         topPanel.add(topToolbar.component, BorderLayout.WEST)
         topPanel.add(rightPanel, BorderLayout.EAST)
 
-        val scrollPane = JBScrollPane(listPanel)
         scrollPane.border = JBUI.Borders.empty()
-        scrollPane.viewport.background = listPanel.background
+        scrollPane.viewport.background = panelBackground
 
         add(topPanel, BorderLayout.NORTH)
         add(scrollPane, BorderLayout.CENTER)
@@ -435,7 +440,7 @@ class WorktreePanel(private val project: Project) : JBPanel<WorktreePanel>(Borde
 
         init {
             isOpaque = true
-            background = UIUtil.getPanelBackground()
+            background = cardBackground
             border = JBUI.Borders.compound(
                 JBUI.Borders.customLine(JBColor.border()),
                 JBUI.Borders.empty(8),
@@ -446,7 +451,7 @@ class WorktreePanel(private val project: Project) : JBPanel<WorktreePanel>(Borde
             nameLabel.toolTipText = worktree.path
 
             pathLabel.font = JBUI.Fonts.smallFont()
-            pathLabel.foreground = UIUtil.getContextHelpForeground()
+            pathLabel.foreground = JBColor.lazy { UIUtil.getContextHelpForeground() }
 
             branchLabel.icon = AllIcons.Vcs.Branch
             branchLabel.font = JBUI.Fonts.smallFont()

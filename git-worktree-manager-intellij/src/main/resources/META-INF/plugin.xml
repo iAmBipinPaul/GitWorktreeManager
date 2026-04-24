@@ -13,6 +13,11 @@ Manage Git worktrees from within JetBrains IDEs. List, add, remove, and open Git
 </ul>
 ]]></description>
     <change-notes><![CDATA[
+1.0.18:
+<ul>
+<li>Updated the action and tool window icons to match the plugin logo silhouette while preserving IntelliJ theme compatibility.</li>
+</ul>
+
 1.0.10:
 <ul>
 <li>Improved worktree display names to show shortest unique path instead of just folder name.</li>
@@ -23,6 +28,7 @@ Manage Git worktrees from within JetBrains IDEs. List, add, remove, and open Git
     <depends>Git4Idea</depends>
 
     <extensions defaultExtensionNs="com.intellij">
+        <iconMapper mappingFile="GitWorktreeManagerIconMappings.json"/>
         <toolWindow id="Git Worktrees"
                     anchor="left"
                     type="docked"
@@ -35,7 +41,7 @@ Manage Git worktrees from within JetBrains IDEs. List, add, remove, and open Git
         <action id="GitWorktreeManager.ShowToolWindow"
                 class="com.iambipinpaul.gitworktreemanager.actions.ShowWorktreeManagerAction"
                 text="Git Worktree Manager"
-                icon="/icons/toolWindow.svg"
+                icon="/icons/action.svg"
                 description="Show Git Worktree Manager tool window">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
         </action>

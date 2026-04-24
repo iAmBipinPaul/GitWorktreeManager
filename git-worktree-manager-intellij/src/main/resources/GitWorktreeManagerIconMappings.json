@@ -1,0 +1,10 @@
+{
+  "icons": {
+    "expui": {
+      "action.svg": "icons/action.svg",
+      "toolwindow": {
+        "gitWorktrees.svg": "icons/toolWindow.svg"
+      }
+    }
+  }
+}
