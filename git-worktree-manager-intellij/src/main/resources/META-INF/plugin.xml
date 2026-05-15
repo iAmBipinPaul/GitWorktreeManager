@@ -13,6 +13,12 @@ Manage Git worktrees from within JetBrains IDEs. List, add, remove, and open Git
 </ul>
 ]]></description>
     <change-notes><![CDATA[
+1.0.19:
+<ul>
+<li>Enabled process-scoped Git long path support for Windows worktree commands.</li>
+<li>Added clearer guidance when Git reports long path errors.</li>
+</ul>
+
 1.0.18:
 <ul>
 <li>Updated the action and tool window icons to match the plugin logo silhouette while preserving IntelliJ theme compatibility.</li>

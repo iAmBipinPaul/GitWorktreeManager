@@ -97,6 +97,18 @@ Each worktree card provides quick action buttons:
 - Visual Studio 2022 (17.14 or later)
 - Git installed and available in PATH
 
+### Windows long paths
+
+Git Worktree Manager runs Git commands on Windows with process-scoped `core.longpaths=true` so worktree creation can handle repositories with long paths without changing your global Git configuration.
+
+If you also see "filename too long" from Git in a terminal or another tool, enable Git for Windows long path support globally:
+
+```bash
+git config --global core.longpaths true
+```
+
+See the [Git for Windows long paths note](https://gitforwindows.org/git-cannot-create-a-file-or-directory-with-a-long-path.html) for background.
+
 ## Contributing
 
 Contributions are welcome! Here's how you can help:
