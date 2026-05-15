@@ -121,6 +121,8 @@ Contributions are welcome! Here's how you can help:
 
 ### Development Setup
 
+Requires the .NET 10 SDK version pinned in `global.json`.
+
 ```bash
 # Clone the repository
 git clone https://github.com/iAmBipinPaul/GitWorktreeManager.git
