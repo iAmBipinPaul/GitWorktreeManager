@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
@@ -12,25 +12,22 @@
     <AssemblyName>GitWorktreeManager</AssemblyName>
 
     <!-- Extension Metadata -->
-    <Version>1.0.11</Version>
+    <Version>1.0.19</Version>
     <Authors>Bipin Paul</Authors>
     <Description>Manage Git worktrees from within Visual Studio</Description>
   </PropertyGroup>
 
   <!-- VisualStudio.Extensibility SDK -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Sdk" Version="17.14.40254" />
-    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="17.14.40254" />
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Sdk" Version="17.14.40608" />
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="17.14.40608" />
   </ItemGroup>
 
   <!-- Enable XAML for Remote UI - must be EmbeddedResource for RemoteUserControl -->
   <ItemGroup>
-    <EmbeddedResource Include="ToolWindows\WorktreeToolWindowControl.xaml"
-                      LogicalName="GitWorktreeManager.ToolWindows.WorktreeToolWindowControl.xaml" />
-    <EmbeddedResource Include="Dialogs\AddWorktreeDialogControl.xaml"
-                      LogicalName="GitWorktreeManager.Dialogs.AddWorktreeDialogControl.xaml" />
-    <EmbeddedResource Include="Dialogs\DeleteConfirmationDialogControl.xaml"
-                      LogicalName="GitWorktreeManager.Dialogs.DeleteConfirmationDialogControl.xaml" />
+    <EmbeddedResource Include="ToolWindows\WorktreeToolWindowControl.xaml" LogicalName="GitWorktreeManager.ToolWindows.WorktreeToolWindowControl.xaml" />
+    <EmbeddedResource Include="Dialogs\AddWorktreeDialogControl.xaml" LogicalName="GitWorktreeManager.Dialogs.AddWorktreeDialogControl.xaml" />
+    <EmbeddedResource Include="Dialogs\DeleteConfirmationDialogControl.xaml" LogicalName="GitWorktreeManager.Dialogs.DeleteConfirmationDialogControl.xaml" />
   </ItemGroup>
 
   <!-- Exclude XAML from Page compilation (not WPF) -->

@@ -5,6 +5,7 @@ import com.iambipinpaul.gitworktreemanager.models.Worktree
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.util.SystemInfo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -237,12 +238,15 @@ class GitService(
         arguments: List<String>,
         timeoutMs: Int = DEFAULT_TIMEOUT_MS,
     ): GitProcessResult {
-        logger.info("Executing: git ${arguments.joinToString(" ")} (in $workingDirectory)")
+        val enableLongPathSupport = SystemInfo.isWindows
+        val gitArguments = buildGitArguments(arguments, enableLongPathSupport)
+
+        logger.info("Executing: git ${gitArguments.joinToString(" ")} (in $workingDirectory)")
 
         val commandLine = GeneralCommandLine(GIT_EXECUTABLE)
             .withWorkDirectory(workingDirectory)
             .withCharset(Charsets.UTF_8)
-            .withParameters(arguments)
+            .withParameters(gitArguments)
 
         val handler = CapturingProcessHandler(commandLine)
 
@@ -251,7 +255,7 @@ class GitService(
                 val output = handler.runProcess(timeoutMs)
                 if (output.isTimeout) {
                     handler.destroyProcess()
-                    logger.error("Git command timed out after ${timeoutMs}ms: git ${arguments.joinToString(" ")}")
+                    logger.error("Git command timed out after ${timeoutMs}ms: git ${gitArguments.joinToString(" ")}")
                     return@withContext GitProcessResult(
                         success = false,
                         exitCode = -1,
@@ -281,11 +285,18 @@ class GitService(
                     success = exitCode == 0,
                     exitCode = exitCode,
                     output = stdout,
-                    errorMessage = if (exitCode != 0) stderr.trim().ifBlank { null } else null,
+                    errorMessage = if (exitCode != 0) {
+                        createUserFacingErrorMessage(
+                            stderr.trim().ifBlank { "Git command failed with exit code $exitCode." },
+                            enableLongPathSupport,
+                        )
+                    } else {
+                        null
+                    },
                 )
             } catch (ex: CancellationException) {
                 handler.destroyProcess()
-                logger.warn("Git command was cancelled: git ${arguments.joinToString(" ")}")
+                logger.warn("Git command was cancelled: git ${gitArguments.joinToString(" ")}")
                 GitProcessResult(
                     success = false,
                     exitCode = -1,
@@ -293,12 +304,15 @@ class GitService(
                     errorMessage = "Git command was cancelled",
                 )
             } catch (ex: Exception) {
-                logger.error("Failed to execute Git command: git ${arguments.joinToString(" ")}", ex)
+                logger.error("Failed to execute Git command: git ${gitArguments.joinToString(" ")}", ex)
                 GitProcessResult(
                     success = false,
                     exitCode = -1,
                     output = null,
-                    errorMessage = "Failed to execute Git command: ${ex.message}",
+                    errorMessage = createUserFacingErrorMessage(
+                        "Failed to execute Git command: ${ex.message}",
+                        enableLongPathSupport,
+                    ),
                 )
             }
         }
@@ -316,5 +330,57 @@ class GitService(
         private const val STATUS_TIMEOUT_MS = 10_000
         private const val UPSTREAM_TIMEOUT_MS = 5_000
         private const val GIT_EXECUTABLE = "git"
+        private val LONG_PATH_ERROR_PATTERNS = listOf(
+            "filename too long",
+            "file name too long",
+            "path too long",
+            "path length",
+            "path, file name, or both are too long",
+        )
+
+        internal fun buildGitArguments(
+            arguments: List<String>,
+            enableLongPathSupport: Boolean,
+        ): List<String> {
+            return if (enableLongPathSupport) {
+                listOf("-c", "core.longpaths=true") + arguments
+            } else {
+                arguments
+            }
+        }
+
+        internal fun isLongPathError(errorMessage: String?): Boolean {
+            if (errorMessage.isNullOrBlank()) {
+                return false
+            }
+
+            return LONG_PATH_ERROR_PATTERNS.any { pattern ->
+                errorMessage.contains(pattern, ignoreCase = true)
+            }
+        }
+
+        internal fun createUserFacingErrorMessage(
+            errorMessage: String,
+            longPathSupportWasEnabled: Boolean,
+        ): String {
+            if (!isLongPathError(errorMessage)) {
+                return errorMessage
+            }
+
+            val supportStatus = if (longPathSupportWasEnabled) {
+                "Git Worktree Hub already ran this Git command with process-scoped core.longpaths=true."
+            } else {
+                "This looks like a Git for Windows long path error."
+            }
+
+            return listOf(
+                errorMessage,
+                supportStatus +
+                    " If the same repository also fails from a terminal or another Git tool, " +
+                    "enable Git for Windows long paths globally with:",
+                "git config --global core.longpaths true",
+                "This is a Git for Windows setting, not a JetBrains IDE setting.",
+            ).joinToString(System.lineSeparator() + System.lineSeparator())
+        }
     }
 }

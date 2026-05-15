@@ -33,6 +33,9 @@ public class GitWorktreeManagerExtension : Extension
             "Bipin Paul",
             "Git Worktree Manager",
             "Manage Git worktrees from within Visual Studio. List, add, remove, and open Git worktrees directly from the IDE without leaving Visual Studio.")
+        {
+            DotnetTargetVersions = [DotnetTarget.Custom("net10.0")]
+        }
     };
 
     /// <summary>

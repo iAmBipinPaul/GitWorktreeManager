@@ -11,6 +11,15 @@ public class GitService : IGitService
 {
     private const int DefaultTimeoutMs = 30000; // 30 seconds
     private const string GitExecutable = "git";
+    private static readonly string[] LongPathErrorPatterns =
+    {
+        "filename too long",
+        "file name too long",
+        "path too long",
+        "path length",
+        "path, file name, or both are too long"
+    };
+
     private readonly ILoggerService? _logger;
 
     /// <summary>
@@ -250,12 +259,15 @@ public class GitService : IGitService
         string arguments,
         CancellationToken cancellationToken)
     {
-        _logger?.LogInformation($"Executing: git {arguments} (in {workingDirectory})");
+        bool enableLongPathSupport = OperatingSystem.IsWindows();
+        string gitArguments = BuildGitArguments(arguments, enableLongPathSupport);
+
+        _logger?.LogInformation($"Executing: git {gitArguments} (in {workingDirectory})");
 
         var startInfo = new ProcessStartInfo
         {
             FileName = GitExecutable,
-            Arguments = arguments,
+            Arguments = gitArguments,
             WorkingDirectory = workingDirectory,
             UseShellExecute = false,
             RedirectStandardOutput = true,
@@ -303,13 +315,13 @@ public class GitService : IGitService
             catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
             {
                 TryKillProcess(process);
-                _logger?.LogError($"Git command timed out after {DefaultTimeoutMs}ms: git {arguments}");
+                _logger?.LogError($"Git command timed out after {DefaultTimeoutMs}ms: git {gitArguments}");
                 return new GitProcessResult { Success = false, ExitCode = -1, ErrorMessage = "Git command timed out" };
             }
             catch (OperationCanceledException)
             {
                 TryKillProcess(process);
-                _logger?.LogWarning($"Git command was cancelled: git {arguments}");
+                _logger?.LogWarning($"Git command was cancelled: git {gitArguments}");
                 return new GitProcessResult
                 {
                     Success = false, ExitCode = -1, ErrorMessage = "Git command was cancelled"
@@ -341,22 +353,73 @@ public class GitService : IGitService
 
             _logger?.LogInformation($"Git command completed with exit code: {exitCode}");
 
+            string rawError = error.Trim();
+            string? errorMessage = exitCode != 0
+                ? CreateUserFacingErrorMessage(
+                    string.IsNullOrWhiteSpace(rawError)
+                        ? $"Git command failed with exit code {exitCode}."
+                        : rawError,
+                    enableLongPathSupport)
+                : null;
+
             return new GitProcessResult
             {
                 Success = exitCode == 0,
                 ExitCode = exitCode,
                 Output = output,
-                ErrorMessage = exitCode != 0 ? error.Trim() : null
+                ErrorMessage = errorMessage
             };
         }
         catch (Exception ex)
         {
-            _logger?.LogException(ex, $"Failed to execute Git command: git {arguments}");
+            _logger?.LogException(ex, $"Failed to execute Git command: git {gitArguments}");
+            string errorMessage = CreateUserFacingErrorMessage(
+                $"Failed to execute Git command: {ex.Message}",
+                enableLongPathSupport);
+
             return new GitProcessResult
             {
-                Success = false, ExitCode = -1, ErrorMessage = $"Failed to execute Git command: {ex.Message}"
+                Success = false, ExitCode = -1, ErrorMessage = errorMessage
             };
         }
+    }
+
+    internal static string BuildGitArguments(string arguments, bool enableLongPathSupport)
+    {
+        return enableLongPathSupport
+            ? $"-c core.longpaths=true {arguments}"
+            : arguments;
+    }
+
+    internal static bool IsLongPathError(string? errorMessage)
+    {
+        if (string.IsNullOrWhiteSpace(errorMessage))
+        {
+            return false;
+        }
+
+        return LongPathErrorPatterns.Any(
+            pattern => errorMessage.Contains(pattern, StringComparison.OrdinalIgnoreCase));
+    }
+
+    internal static string CreateUserFacingErrorMessage(string errorMessage, bool longPathSupportWasEnabled)
+    {
+        if (!IsLongPathError(errorMessage))
+        {
+            return errorMessage;
+        }
+
+        string supportStatus = longPathSupportWasEnabled
+            ? "Git Worktree Manager already ran this Git command with process-scoped core.longpaths=true."
+            : "This looks like a Git for Windows long path error.";
+
+        return string.Join(
+            Environment.NewLine + Environment.NewLine,
+            errorMessage,
+            supportStatus +
+            " If the same repository also fails from a terminal or another Git tool, enable Git for Windows long paths globally with:",
+            "git config --global core.longpaths true",
+            "This is a Git for Windows setting, not a Visual Studio setting.");
     }
 
     /// <inheritdoc />

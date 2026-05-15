@@ -26,17 +26,22 @@ Access the Worktree Manager from the **Extensions** menu or **View > Other Windo
 ### 🌳 View All Worktrees at a Glance
 
 See all your Git worktrees in a clean, card-based layout. Each worktree displays:
-- Folder name and full path
+- Intelligent path shortening for easy identification
 - Current branch name
 - Latest commit SHA
 - Status badges (CURRENT, MAIN, LOCKED)
 
-### 📊 Live Git Status (New)
+### 🧠 Smart Path Display
+
+When you have multiple worktrees, the extension automatically shows the shortest unique path for each worktree, making it easy to identify them at a glance even when they share common parent directories.
+
+### 📊 Live Git Status
 
 Get real-time insights into each worktree without switching branches:
 - **Modified files**: Count of changed and staged files.
 - **Untracked files**: Count of new files not yet tracked by Git.
 - **Sync Status**: See exactly how many commits you are ahead or behind from upstream.
+- **Local Only**: Clearly indicates worktrees with no upstream tracking branch.
 - **Non-blocking**: Status is fetched asynchronously in the background so the UI stays snappy.
 
 ![Worktree List](docs/screenshots/List.png)
@@ -66,7 +71,7 @@ Each worktree card provides quick action buttons:
 
 | Action | Description |
 |--------|-------------|
-| **Open in VS** | Opens the worktree in a new Visual Studio instance |
+| **Open in VS** | Opens the worktree in a new Visual Studio instance (supports .sln and .slnx solutions) |
 | **Explorer** | Opens the worktree folder in Windows File Explorer |
 | **Copy Path** | Copies the full path to clipboard |
 | **Remove** | Removes the worktree (includes **Force Remove** for dirty worktrees) |
@@ -89,8 +94,20 @@ Each worktree card provides quick action buttons:
 
 ## Requirements
 
-- Visual Studio 2022 (17.10 or later)
+- Visual Studio 2022 (17.14 or later)
 - Git installed and available in PATH
+
+### Windows long paths
+
+Git Worktree Manager runs Git commands on Windows with process-scoped `core.longpaths=true` so worktree creation can handle repositories with long paths without changing your global Git configuration.
+
+If you also see "filename too long" from Git in a terminal or another tool, enable Git for Windows long path support globally:
+
+```bash
+git config --global core.longpaths true
+```
+
+See the [Git for Windows long paths note](https://gitforwindows.org/git-cannot-create-a-file-or-directory-with-a-long-path.html) for background.
 
 ## Contributing
 
@@ -103,6 +120,8 @@ Contributions are welcome! Here's how you can help:
 5. **Open** a Pull Request
 
 ### Development Setup
+
+Requires the .NET 10 SDK version pinned in `global.json`.
 
 ```bash
 # Clone the repository
